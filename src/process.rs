@@ -4,10 +4,17 @@ use libc::waitpid as c_waitpid;
 use std::io::Error;
 use std::ptr;
 
+/// libc `fork()` result wrapper
+
 pub enum ForkResult {
   Parent {child: pid_t},
   Child
 }
+
+/// libc `fork()`
+/// * On parent process returns ForkResult::Parent with the new child's pid_t.
+/// * On child process returns ForkResult::Child.
+/// * On failure returns associated error.
 
 pub fn fork() -> Result<ForkResult, Error> {
   let pid;
