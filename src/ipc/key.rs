@@ -16,7 +16,7 @@ impl Key {
   ///
   /// # Example
   ///
-  /// ```rust,no_run
+  /// ```rust
   /// const KEY_FILE : &str = "/bin/bash";
   /// ftok(KEY_FILE, 0);
   /// ```
