@@ -1,0 +1,7 @@
+[package]
+name = "concurrentes"
+version = "0.1.0"
+authors = ["Matías Lafroce <mlafroce@gmail.com>"]
+
+[dependencies]
+libc = "0.2"
