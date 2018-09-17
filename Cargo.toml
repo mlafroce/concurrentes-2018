@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "conculib",
+    "tp1"
+]
