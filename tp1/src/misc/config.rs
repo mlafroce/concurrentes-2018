@@ -1,4 +1,4 @@
-use MainLockInfo;
+use live_objects::main_lock::MainLockInfo;
 
 use std::collections::HashMap;
 use std::fs::File;

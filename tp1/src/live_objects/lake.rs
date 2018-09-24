@@ -1,4 +1,4 @@
-use Config;
+use misc::config::Config;
 
 use concurrentes::ipc::flock::FileLock;
 use std::io::Error;

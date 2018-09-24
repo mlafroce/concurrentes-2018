@@ -1,22 +1,12 @@
-extern crate concurrentes;
-extern crate rand;
-extern crate libc;
-
-mod main_lock;
-mod config;
-mod lake;
-mod ship;
-mod ship_signal_handler;
-
 use libc::SIGINT;
 
 use concurrentes::signal::SignalHandlerDispatcher;
 
-use config::Config;
-use main_lock::{MainLock, MainLockInfo};
-use lake::Lake;
-use ship::Ship;
-use ship_signal_handler::ShipSigIntHandler;
+use live_objects::main_lock::MainLock;
+use live_objects::lake::Lake;
+use live_objects::ship::Ship;
+use handlers::signal_handler::SigIntHandler;
+use misc::config::Config;
 
 use std::cell::RefCell;
 use std::io;
@@ -25,9 +15,14 @@ use std::rc::Rc;
 const MAIN_LOCK_FILENAME : &str = "tp1.lock";
 const MAIN_CONFIG_FILENAME: &str = "config.cfg";
 
-fn main() -> io::Result<()> {
+pub trait LiveObject {
+  fn new(lake: Lake) -> Ship;
+  fn tick(&mut self) -> Result<(), io::Error>;
+}
+
+pub fn start<T: LiveObject>() -> io::Result<()> {
   // Register signal handler
-  let sigint_handler = Rc::new(RefCell::new(ShipSigIntHandler::new()));
+  let sigint_handler = Rc::new(RefCell::new(SigIntHandler::new()));
   SignalHandlerDispatcher::register(SIGINT, sigint_handler.clone());
   // Load lock info
   let mut main_lock = MainLock::new(MAIN_LOCK_FILENAME)?;
@@ -45,11 +40,11 @@ fn main() -> io::Result<()> {
   lock_info.counter_inc();
   lock_info.save(MAIN_LOCK_FILENAME)?;
   main_lock.lock.unlock()?;
-  // Start ship
-  let mut ship = Ship::new(lake);
   // Main loop
+  // Start object
+  let mut object = T::new(lake);
   while !sigint_handler.borrow().has_graceful_quit() {
-    ship.tick()?;
+    object.tick()?;
   }
   // Save lock info
   main_lock.lock.lock_exclusive()?;

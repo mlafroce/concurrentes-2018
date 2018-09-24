@@ -1,6 +1,7 @@
 use rand;
 use rand::Rng;
-use Lake;
+use live_objects::lake::Lake;
+use live_objects::live_object::LiveObject;
 
 use std::io::Error;
 use std::time::Duration;
@@ -11,12 +12,12 @@ pub struct Ship {
   destination: u32
 }
 
-impl Ship {
-  pub fn new(lake: Lake) -> Ship {
+impl LiveObject for Ship {
+  fn new(lake: Lake) -> Ship {
     Ship {lake: lake, destination: 0}
   }
 
-  pub fn tick(&mut self) -> Result<(), Error> {
+  fn tick(&mut self) -> Result<(), Error> {
     self.travel();
     self.lake.lock_port(self.destination)?;
     self.disembark();
@@ -24,7 +25,9 @@ impl Ship {
     self.destination = self.lake.get_next_port(self.destination);
     Ok(())
   }
+}
 
+impl Ship {
   fn travel(&self) {
     let mut rng = rand::thread_rng();
     let msecs = (rng.gen::<u32>() % 2000) + 500;

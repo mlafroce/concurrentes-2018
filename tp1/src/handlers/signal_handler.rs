@@ -1,10 +1,10 @@
 use concurrentes::signal::SignalHandler;
 
-pub struct ShipSigIntHandler {
+pub struct SigIntHandler {
   quit: bool
 }
 
-impl SignalHandler for ShipSigIntHandler {
+impl SignalHandler for SigIntHandler {
   fn handle(&mut self) {
     println!("SigInt handled");
     self.quit = true;
@@ -12,9 +12,9 @@ impl SignalHandler for ShipSigIntHandler {
 
 }
 
-impl ShipSigIntHandler {
-  pub fn new() -> ShipSigIntHandler {
-    ShipSigIntHandler {quit: false}
+impl SigIntHandler {
+  pub fn new() -> SigIntHandler {
+    SigIntHandler {quit: false}
   }
 
   pub fn has_graceful_quit(&self) -> bool {
