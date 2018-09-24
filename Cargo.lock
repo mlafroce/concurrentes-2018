@@ -59,6 +59,7 @@ name = "tp1"
 version = "0.1.0"
 dependencies = [
  "concurrentes 0.1.0",
+ "libc 0.2.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

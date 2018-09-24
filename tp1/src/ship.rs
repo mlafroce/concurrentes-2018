@@ -16,14 +16,12 @@ impl Ship {
     Ship {lake: lake, destination: 0}
   }
 
-  pub fn run(&mut self) -> Result<(), Error> {
-    while(true) {
-      self.travel();
-      self.lake.lock_port(self.destination)?;
-      self.disembark();
-      self.lake.unlock_port(self.destination)?;
-      self.destination = self.lake.get_next_port(self.destination);
-    }
+  pub fn tick(&mut self) -> Result<(), Error> {
+    self.travel();
+    self.lake.lock_port(self.destination)?;
+    self.disembark();
+    self.lake.unlock_port(self.destination)?;
+    self.destination = self.lake.get_next_port(self.destination);
     Ok(())
   }
 

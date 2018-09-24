@@ -3,13 +3,36 @@ use std::io;
 use std::io::{BufRead, BufReader, Write};
 use std::io::{Error, ErrorKind};
 use std::time::SystemTime;
+use concurrentes::ipc::flock::FileLock;
+
+pub struct MainLock {
+  path: &'static str,
+  pub lock: FileLock
+}
 
 pub struct MainLockInfo {
   process_counter: i32,
   pub timestamp: u64
 }
 
+impl MainLock {
+  pub fn new(path : &'static str) -> Result<MainLock, Error> {
+    let lock = FileLock::create(path)?;
+    Ok(MainLock{path: path, lock: lock})
+  } 
+
+  pub fn get_info(&self) -> MainLockInfo {
+  match MainLockInfo::read_info(self.path) {
+      Ok(info) => info,
+      Err(_e) => {
+        MainLockInfo::create(self.path).unwrap()
+      }
+    }
+  }
+}
+
 impl MainLockInfo {
+
   pub fn read_info(path: &str) -> Result<MainLockInfo, Error> {
     let file = File::open(path)?;
     let mut buf = BufReader::new(file);

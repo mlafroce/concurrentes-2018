@@ -1,7 +1,6 @@
 use Config;
 
 use concurrentes::ipc::flock::FileLock;
-use std::fs::File;
 use std::io::Error;
 
 const NUM_PORTS_PARAM: &str = "lake ports";
