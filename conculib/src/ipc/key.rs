@@ -24,12 +24,12 @@ impl Key {
     let result;
     let path_wrapper = CString::new(path)?;
     unsafe {
-      result = c_ftok(path_wrapper.as_ptr(), proj_id as i32);
+      result = c_ftok(path_wrapper.as_ptr(), i32::from(proj_id));
     }
     if result != -1 {
-      return Ok(Key{key: result});
+      Ok(Key{key: result})
     } else {
-      return Err(Error::last_os_error());
+      Err(Error::last_os_error())
     }
   }
 }

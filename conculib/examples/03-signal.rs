@@ -32,7 +32,6 @@ impl SigIntHandler {
 }
 
 fn main() -> io::Result<()> {
-
   // Use RC so I can keep one reference here in main and one in the handler
   let sigint_handler = Rc::new(RefCell::new(SigIntHandler::new()));
   SignalHandlerDispatcher::register(SIGINT, sigint_handler.clone());

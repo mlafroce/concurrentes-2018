@@ -16,27 +16,25 @@ pub struct Shmem<T> {
 }
 
 impl <T> Shmem<T> {
-  pub fn get(key: Key, flags: i32) -> Result<Shmem<T>, Error> {
+  pub fn get(key: &Key, flags: i32) -> Result<Shmem<T>, Error> {
     let id;
     unsafe {
       id = c_shmget(key.key, mem::size_of::<T>(), flags);
     }
     if id != -1 {
-      return Ok(Shmem{id: id, data: ptr::null_mut()});
+      Ok(Shmem{id, data: ptr::null_mut()})
     } else {
-      return Err(Error::last_os_error());
+      Err(Error::last_os_error())
     }
   }
 
-  pub fn control(&self, cmd: i32, buf: *mut shmid_ds) -> Result<(), Error> {
+  pub unsafe fn control(&self, cmd: i32, buf: *mut shmid_ds) -> Result<(), Error> {
     let result;
-    unsafe {
-      result = c_shmctl(self.id, cmd, buf);
-    }
+    result = c_shmctl(self.id, cmd, buf);
     if result != -1 {
-      return Ok(());
+      Ok(())
     } else {
-      return Err(Error::last_os_error());
+      Err(Error::last_os_error())
     }
   }
 
@@ -44,9 +42,9 @@ impl <T> Shmem<T> {
     unsafe {
       self.data = c_shmat(self.id, ptr::null(), flags) as *mut T;
       if self.data as i32 != -1 {
-        return Ok(());
+        Ok(())
       } else {
-        return Err(Error::last_os_error());
+        Err(Error::last_os_error())
       }
     }
   }
@@ -57,14 +55,16 @@ impl <T> Shmem<T> {
       result = c_shmdt(self.data as *const c_void);
     }
     if result != -1 {
-      return Ok(());
+      Ok(())
     } else {
-      return Err(Error::last_os_error());
+      Err(Error::last_os_error())
     }
   }
 
   pub fn destroy(self) -> Result<(), Error> {
-    self.control(IPC_RMID, ptr::null_mut())
+    unsafe {
+      self.control(IPC_RMID, ptr::null_mut())
+    }
   }
 
   pub fn get_data(&self) -> & T {

@@ -13,7 +13,7 @@ pub struct FileLock {
 impl FileLock {
   pub fn create(path: &str) -> Result<FileLock, Error> {
     let file = OpenOptions::new().read(true).write(true).create(true).open(path)?;
-    Ok(FileLock {file: file})
+    Ok(FileLock {file})
   }
 
   pub fn lock_exclusive(&mut self) -> Result<(), Error> {

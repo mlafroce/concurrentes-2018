@@ -22,11 +22,11 @@ pub fn fork() -> Result<ForkResult, Error> {
     pid = c_fork();
   }
   if pid == 0 {
-    return Ok(ForkResult::Child);
+    Ok(ForkResult::Child)
   } else if pid > 0 {
-    return Ok(ForkResult::Parent{child: pid});
+    Ok(ForkResult::Parent{child: pid})
   } else {
-    return Err(Error::last_os_error());
+    Err(Error::last_os_error())
   }
 }
 
@@ -36,8 +36,8 @@ pub fn waitpid(child: pid_t) -> Result<pid_t, Error> {
     pid = c_waitpid(child, ptr::null_mut(), 0);
   }
   if pid > 0 {
-    return Ok(pid);
+    Ok(pid)
   } else {
-    return Err(Error::last_os_error());
+    Err(Error::last_os_error())
   }
 }
