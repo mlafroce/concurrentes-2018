@@ -42,6 +42,7 @@ impl SignalHandlerDispatcher {
     unsafe {
       let mut sa : sigaction = mem::uninitialized();
       sa.sa_sigaction = SignalHandlerDispatcher::dispatch as *mut c_void as sighandler_t;
+      sa.sa_flags = 0;
       sigemptyset(&mut sa.sa_mask);
       sigaddset(&mut sa.sa_mask, signum);
       sigaction(signum, &sa, ptr::null_mut());
