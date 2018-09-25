@@ -12,7 +12,7 @@ fn main() -> io::Result<()> {
   let key = Key::ftok(KEY_FILE, 0)?;
   println!("Key obtained: {}", key.key);
   let flags = ipc::IPC_CREAT | ipc::IPC_EXCL | 0o660;
-  let mut shmem = Shmem::<i32>::get(key, flags)
+  let mut shmem = Shmem::<i32>::get(&key, flags)
     .expect("Error creating shmem");
   shmem.attach(0)?;
 

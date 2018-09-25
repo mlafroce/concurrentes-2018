@@ -16,9 +16,9 @@ impl Key {
   ///
   /// # Example
   ///
-  /// ```rust
+  /// ```rust, no_run
   /// const KEY_FILE : &str = "/bin/bash";
-  /// ftok(KEY_FILE, 0);
+  /// Key::ftok(KEY_FILE, 0);
   /// ```
   pub fn ftok(path: &str, proj_id: u8) -> Result<Key, Error> {
     let result;
