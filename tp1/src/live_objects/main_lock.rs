@@ -32,7 +32,6 @@ impl MainLock {
 }
 
 impl MainLockInfo {
-
   pub fn read_info(path: &str) -> Result<MainLockInfo, Error> {
     let file = File::open(path)?;
     let mut buf = BufReader::new(file);

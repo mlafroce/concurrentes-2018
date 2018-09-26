@@ -24,6 +24,7 @@ pub fn start<T: LiveObject>() -> io::Result<()> {
   // Register signal handler
   let sigint_handler = Rc::new(RefCell::new(SigIntHandler::new()));
   SignalHandlerDispatcher::register(SIGINT, sigint_handler.clone());
+
   // Load lock info
   let mut main_lock = MainLock::new(MAIN_LOCK_FILENAME)?;
   main_lock.lock.lock_exclusive()?;

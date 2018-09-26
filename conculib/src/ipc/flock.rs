@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::fs::OpenOptions;
-use std::ops::Drop;
+//use std::ops::Drop;
 use std::io;
 use std::io::Error;
 use std::os::unix::io::AsRawFd;
@@ -48,13 +48,14 @@ impl FileLock {
   }
 }
 
+/* TODO
 impl<'a> FileLockGuard<'a> {
-  pub fn new_exclusive(lock: &mut FileLock) -> io::Result<FileLockGuard> {
+  pub fn new_exclusive(lock: Rc<FileLock>) -> io::Result<FileLockGuard> {
     lock.lock_exclusive()?;
     Ok(FileLockGuard{lock})
   }
 
-  pub fn new_shared(lock: &mut FileLock) -> io::Result<FileLockGuard> {
+  pub fn new_shared(lock: Rc<FileLock>) -> io::Result<FileLockGuard> {
     lock.lock_shared()?;
     Ok(FileLockGuard{lock})
   }
@@ -64,4 +65,4 @@ impl<'a> Drop for FileLockGuard<'a> {
   fn drop(&mut self) {
     self.lock.unlock().unwrap();
   }
-}
+}*/
