@@ -1,5 +1,6 @@
-use std::fs::File;
+use std::fs::{File, remove_file};
 use std::fs::OpenOptions;
+use std::str::FromStr;
 //use std::ops::Drop;
 use std::io;
 use std::io::Error;
@@ -13,13 +14,15 @@ pub struct FileLockGuard<'a> {
 }
 
 pub struct FileLock {
-  pub file: File
+  pub file: File,
+  pub path: String
 }
 
 impl FileLock {
   pub fn create(path: &str) -> io::Result<FileLock> {
     let file = OpenOptions::new().read(true).write(true).create(true).open(path)?;
-    Ok(FileLock {file})
+    let path = String::from_str(path).unwrap();
+    Ok(FileLock {file, path})
   }
 
   pub fn lock_exclusive(&mut self) -> io::Result<()> {
@@ -45,6 +48,10 @@ impl FileLock {
     } else {
       Err(Error::last_os_error())
     }
+  }
+
+  pub fn destroy(&mut self) -> io::Result<()> {
+    remove_file(self.path.as_str())
   }
 }
 

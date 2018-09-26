@@ -67,6 +67,9 @@ impl LiveObjectRunner {
     let mut lock_info = main_lock.get_info();
     lock_info.counter_dec();
     lock_info.save(MAIN_LOCK_FILENAME)?;
+    if lock_info.is_counter_zero() {
+      self.lake.borrow_mut().destroy()?;
+    }
     main_lock.lock.unlock()?;
     // Exit
     Ok(())

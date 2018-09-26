@@ -39,6 +39,14 @@ impl Lake {
     Lake {lake_ports}
   }
 
+  pub fn destroy(&mut self) -> io::Result<()> {
+    println!("Lake destroy!");
+    for mut port in &mut self.lake_ports {
+      port.destroy()?;
+    }
+    Ok(())
+  }
+
   pub fn get_passenger_pipe_reader(&mut self, current_port: u32)
     -> io::Result<named_pipe::NamedPipeReader> {
     let passenger_pipe_path = format!("port-{:?}-board.fifo", current_port);
