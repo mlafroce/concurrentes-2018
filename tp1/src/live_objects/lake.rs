@@ -3,7 +3,7 @@ use misc::config::Config;
 use concurrentes::ipc::flock::FileLock;
 use concurrentes::ipc::named_pipe;
 use std::io;
-use std::io::{Error, Read};
+use std::io::Error;
 
 const NUM_PORTS_PARAM: &str = "lake ports";
 const PASSENGER_PIPE_PATH: &str = "port-{:?}-board.fifo";

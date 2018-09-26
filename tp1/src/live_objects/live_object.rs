@@ -16,43 +16,59 @@ const MAIN_LOCK_FILENAME : &str = "tp1.lock";
 const MAIN_CONFIG_FILENAME: &str = "config.cfg";
 
 pub trait LiveObject {
-  fn new(lake: Lake) -> Ship;
+  fn new(lake: &RefCell<Lake>) -> Ship;
   fn tick(&mut self) -> Result<(), io::Error>;
 }
 
-pub fn start<T: LiveObject>() -> io::Result<()> {
-  // Register signal handler
-  let sigint_handler = Rc::new(RefCell::new(SigIntHandler::new()));
-  SignalHandlerDispatcher::register(SIGINT, sigint_handler.clone());
+pub struct LiveObjectRunner {
+  sigint_handler: Rc<RefCell<SigIntHandler>>,
+  lake: RefCell<Lake>
+}
 
-  // Load lock info
-  let mut main_lock = MainLock::new(MAIN_LOCK_FILENAME)?;
-  main_lock.lock.lock_exclusive()?;
-  // Load config
-  let mut lock_info = main_lock.get_info();
-  let lake_config = Config::new(MAIN_CONFIG_FILENAME, &lock_info)?;
+impl LiveObjectRunner {
+  pub fn new() -> io::Result<(LiveObjectRunner)> {
+    let sigint_handler = Rc::new(RefCell::new(SigIntHandler::new()));
+    SignalHandlerDispatcher::register(SIGINT, sigint_handler.clone());
 
-  let lake: Lake;
-  if lock_info.is_counter_zero() {
-    lake = Lake::init(&lake_config);
-  } else {
-    lake = Lake::load(&lake_config);
+    // Load lock info
+    let mut main_lock = MainLock::new(MAIN_LOCK_FILENAME)?;
+    main_lock.lock.lock_exclusive()?;
+    // Load config
+    let mut lock_info = main_lock.get_info();
+    let lake_config = Config::new(MAIN_CONFIG_FILENAME, &lock_info)?;
+
+    let lake: Lake;
+    if lock_info.is_counter_zero() {
+      lake = Lake::init(&lake_config);
+    } else {
+      lake = Lake::load(&lake_config);
+    }
+    lock_info.counter_inc();
+    lock_info.save(MAIN_LOCK_FILENAME)?;
+    main_lock.lock.unlock()?;
+    Ok(LiveObjectRunner{sigint_handler, lake: RefCell::new(lake)})
   }
-  lock_info.counter_inc();
-  lock_info.save(MAIN_LOCK_FILENAME)?;
-  main_lock.lock.unlock()?;
+
   // Main loop
-  // Start object
-  let mut object = T::new(lake);
-  while !sigint_handler.borrow().has_graceful_quit() {
-    object.tick()?;
+  pub fn run<T: LiveObject>(&self) -> io::Result<()> {
+    // Start object
+    let mut object = T::new(&self.lake);
+    while !self.sigint_handler.borrow().has_graceful_quit() {
+      object.tick()?;
+    }
+    Ok(())
   }
-  // Save lock info
-  main_lock.lock.lock_exclusive()?;
-  lock_info = main_lock.get_info();
-  lock_info.counter_dec();
-  lock_info.save(MAIN_LOCK_FILENAME)?;
-  main_lock.lock.unlock()?;
-  // Exit
-  Ok(())
+  
+  /// TODO? Drop
+  pub fn exit(&self) -> io::Result<()> { 
+    // Save lock info
+    let mut main_lock = MainLock::new(MAIN_LOCK_FILENAME)?;
+    main_lock.lock.lock_exclusive()?;
+    let mut lock_info = main_lock.get_info();
+    lock_info.counter_dec();
+    lock_info.save(MAIN_LOCK_FILENAME)?;
+    main_lock.lock.unlock()?;
+    // Exit
+    Ok(())
+  }
 }

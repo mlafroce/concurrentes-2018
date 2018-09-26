@@ -6,30 +6,31 @@ use live_objects::live_object::LiveObject;
 use std::io::{Error, Read};
 use std::time::Duration;
 use std::thread::sleep;
+use std::cell::RefCell;
 
-pub struct Ship {
-  lake: Lake,
+pub struct Ship<'a> {
+  lake: &'a RefCell<Lake>,
   current_capacity: u32,
   destination: u32
 }
 
-impl LiveObject for Ship {
-  fn new(lake: Lake) -> Ship {
-    Ship {lake, current_capacity: 2, destination: 0}
-  }
-
+impl<'a> LiveObject for Ship<'a> {
   fn tick(&mut self) -> Result<(), Error> {
     self.travel();
-    self.lake.lock_port(self.destination)?;
-    self.pick_passengers();
+    self.lake.borrow_mut().lock_port(self.destination)?;
+    //self.pick_passengers();
     self.disembark();
-    self.lake.unlock_port(self.destination)?;
-    self.destination = self.lake.get_next_port(self.destination);
+    self.lake.borrow_mut().unlock_port(self.destination)?;
+    self.destination = self.lake.borrow_mut().get_next_port(self.destination);
     Ok(())
+  }
+  fn new(lake: &RefCell<Lake>) -> Ship {
+    Ship {lake, current_capacity: 2, destination: 0}
   }
 }
 
-impl Ship {
+
+impl<'a> Ship<'a> {
   fn travel(&self) {
     let mut rng = rand::thread_rng();
     let msecs = (rng.gen::<u32>() % 2000) + 500;
@@ -48,7 +49,7 @@ impl Ship {
   }
 
   fn pick_passengers(&mut self) {
-    let mut reader = self.lake.get_passenger_pipe_reader(self.destination).expect("Failed to get pipe");
+    let mut reader = self.lake.borrow_mut().get_passenger_pipe_reader(self.destination).expect("Failed to get pipe");
     while self.current_capacity > 0 {
       let mut buf = String::new();
       let bytes_read = reader.read_to_string(&mut buf);

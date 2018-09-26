@@ -17,10 +17,11 @@ impl Config {
   pub fn new(path: &str, lock_info: &MainLockInfo) -> Result<Config, Error> {
     let metadata = metadata(path)?;
     let metadata_modified = metadata.modified()?;
+    println!("{:?} ---> Config meta: {:?}", path, metadata);
     let config_timestamp = metadata_modified.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
 
     println!("{:?} vs {:?}", config_timestamp, lock_info.timestamp);
-    if config_timestamp != lock_info.timestamp {
+    if config_timestamp >= lock_info.timestamp {
       return Err(Error::new(ErrorKind::InvalidData, "Invalid timestamp!"));
     }
     let config_map = Config::read_config(path)?;

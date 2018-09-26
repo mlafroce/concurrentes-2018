@@ -57,6 +57,7 @@ impl MainLockInfo {
   pub fn create(path: &str) -> Result<MainLockInfo, Error> {
     let metadata = metadata(path)?;
     let metadata_modified = metadata.modified()?;
+    println!("{:?} ---> Config meta: {:?}", path, metadata);
     let config_timestamp = metadata_modified.duration_since(
       SystemTime::UNIX_EPOCH).unwrap().as_secs();
     Ok(MainLockInfo {process_counter: 0, timestamp: config_timestamp})

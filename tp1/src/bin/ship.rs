@@ -7,5 +7,7 @@ use tp1::live_objects::{live_object, ship::Ship};
 use std::io;
 
 fn main() -> io::Result<()> {
-  live_object::start::<Ship>()
+  let runner = live_object::LiveObjectRunner::new()?;
+  runner.run::<Ship>()?;
+  runner.exit()
 }
