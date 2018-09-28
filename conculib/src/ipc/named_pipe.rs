@@ -3,6 +3,7 @@ use libc::{mode_t, c_int, c_void, O_WRONLY, O_RDONLY};
 use std::io;
 use std::io::{Error, Write, Read};
 use std::ffi::CString;
+use std::ops::Drop;
 
 /// System V basic key used for IPC identification
  
@@ -53,6 +54,13 @@ impl NamedPipe {
     } else {
       Err(Error::last_os_error())
     }
+  }
+
+  pub fn close(&self) {
+    let _result;
+    unsafe {
+      _result = libc::close(self.fd);
+    } 
   }
 
   pub fn unlink(path: &str) -> io::Result<()> {
@@ -114,5 +122,17 @@ impl Read for NamedPipeReader {
     } else {
       Err(Error::last_os_error())
     }
+  }
+}
+
+impl Drop for NamedPipeWriter {
+  fn drop(&mut self) {
+    self.named_pipe.close();
+  }
+}
+
+impl Drop for NamedPipeReader {
+  fn drop(&mut self) {
+    self.named_pipe.close();
   }
 }

@@ -16,8 +16,7 @@ const MAIN_LOCK_FILENAME : &str = "tp1.lock";
 const MAIN_CONFIG_FILENAME: &str = "config.cfg";
 
 pub trait LiveObject {
-  fn new(lake: &RefCell<Lake>) -> Ship;
-  fn tick(&mut self) -> Result<(), io::Error>;
+  fn tick(&mut self, &RefCell<Lake>) -> Result<(), io::Error>;
 }
 
 pub struct LiveObjectRunner {
@@ -50,11 +49,10 @@ impl LiveObjectRunner {
   }
 
   // Main loop
-  pub fn run<T: LiveObject>(&self) -> io::Result<()> {
+  pub fn run<T: LiveObject>(&self, mut object: T) -> io::Result<()> {
     // Start object
-    let mut object = T::new(&self.lake);
     while !self.sigint_handler.borrow().has_graceful_quit() {
-      object.tick()?;
+      object.tick(&self.lake)?;
     }
     Ok(())
   }
