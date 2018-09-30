@@ -19,9 +19,13 @@ pub struct FileLock {
 }
 
 impl FileLock {
-  pub fn create(path: &str) -> io::Result<FileLock> {
-    let file = OpenOptions::new().read(true).write(true).create(true).open(path)?;
-    let path = String::from_str(path).unwrap();
+  pub fn new_with_options(path: String, options: OpenOptions)  -> io::Result<FileLock> {
+    let file = options.open(path.as_str())?;
+    Ok(FileLock {file, path})
+  }
+
+  pub fn create(path: String) -> io::Result<FileLock> {
+    let file = OpenOptions::new().read(true).write(true).create(true).open(path.as_str())?;
     Ok(FileLock {file, path})
   }
 

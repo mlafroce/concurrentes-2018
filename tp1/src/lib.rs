@@ -1,3 +1,4 @@
+#[macro_use(log)]
 extern crate concurrentes;
 extern crate libc;
 extern crate rand;

@@ -20,7 +20,7 @@ impl Lake {
     let mut lake_ports_pipes = Vec::new();
     for port in 0..num_ports {
       let port_lock_path = format!("port-{:?}.lock", port);
-      let lock = FileLock::create(port_lock_path.as_str()).unwrap();
+      let lock = FileLock::create(port_lock_path).unwrap();
       lake_ports.push(lock);
       let passenger_pipe_path = format!("port-{:?}-board.fifo", port);
       named_pipe::NamedPipe::create(passenger_pipe_path.as_str(), 0o0644).expect("Failed to create pipe");
@@ -36,7 +36,7 @@ impl Lake {
     let mut lake_ports_pipes = Vec::new();
     for port in 0..num_ports {
       let port_lock_path = format!("port-{:?}.lock", port);
-      let lock = FileLock::create(port_lock_path.as_str()).unwrap();
+      let lock = FileLock::create(port_lock_path).unwrap();
       lake_ports.push(lock);
       let passenger_pipe_path = format!("port-{:?}-board.fifo", port);
       lake_ports_pipes.push(String::from(passenger_pipe_path));

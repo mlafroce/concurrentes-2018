@@ -1,5 +1,8 @@
 use rand;
 use rand::Rng;
+
+use concurrentes::log::{GLOBAL_LOG, Log, LogSeverity};
+
 use live_objects::lake::Lake;
 use live_objects::live_object::LiveObject;
 
@@ -33,9 +36,11 @@ impl Ship {
 
   fn travel(&self) {
     let mut rng = rand::thread_rng();
-    let msecs = (rng.gen::<u32>() % 2000) + 500;
+    let msecs = (rng.gen::<u32>() % 1000);
     let travel_time = Duration::from_millis(msecs as u64);
-    println!("Port {:?} Travelling {:?} msecs", self. destination, travel_time);
+    let msg = format!("Viajando {} msecs al puerto {}",
+      msecs, self.destination);
+    log!(msg.as_str(), LogSeverity::INFO);
     sleep(travel_time);
   }
 
@@ -43,13 +48,15 @@ impl Ship {
     let mut rng = rand::thread_rng();
     let msecs = (rng.gen::<u32>() % 2000) + 500;
     let disembark_time = Duration::from_millis(msecs as u64);
-    println!("Port {:?} Disembarking {:?} msecs", self. destination, disembark_time);
     self.current_capacity = 2;
+    let msg = format!("Desembarcando en {} msecs, {} lugares libres",
+      msecs, self.current_capacity);
+    log!(msg.as_str(), LogSeverity::INFO);
     sleep(disembark_time);
   }
 
   fn pick_passengers(&mut self, lake: &RefCell<Lake>) {
-    println!("Getting reader");
+    log!("Obteniendo fifo", LogSeverity::DEBUG);
     match lake.borrow_mut().get_passenger_pipe_reader(self.destination) {
       Ok(mut reader) => {
         while self.current_capacity > 0 {
@@ -58,15 +65,19 @@ impl Ship {
           match bytes_read {
             Ok(_bytes) => {
               let passenger_id = buf.parse::<u32>();
-              println!("Abordó {:?}", passenger_id);
+              let msg = format!("Abordó el pasajero {:?}",
+                passenger_id);
+              log!(msg.as_str(), LogSeverity::INFO);
               self.current_capacity -= 1;
             },
-            Err(e) => println!("{:?}", e),
+            Err(e) => log!(format!("{:?}", e).as_str(), LogSeverity::WARN),
           }
         }
       }
-      Err(_e) => {
-        println!("No abordaron pasajeros");
+      Err(e) => {
+        let msg = format!("Error al esperar pasajeros en el puerto {}: {:?}",
+          self.destination, e);
+        log!(msg.as_str(), LogSeverity::ERROR);;
       }
     }
   }

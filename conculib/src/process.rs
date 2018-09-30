@@ -4,6 +4,8 @@ use libc::waitpid as c_waitpid;
 use std::io::Error;
 use std::ptr;
 
+pub const ANY_CHILD: pid_t = -1;
+
 /// libc `fork()` result wrapper
 
 pub enum ForkResult {

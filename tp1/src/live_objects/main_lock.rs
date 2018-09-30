@@ -1,9 +1,11 @@
+use concurrentes::ipc::flock::FileLock;
+
 use std::fs::{File, metadata};
 use std::io;
 use std::io::{BufRead, BufReader, Write};
 use std::io::{Error, ErrorKind};
+use std::str::FromStr;
 use std::time::SystemTime;
-use concurrentes::ipc::flock::FileLock;
 
 pub struct MainLock {
   path: &'static str,
@@ -17,7 +19,7 @@ pub struct MainLockInfo {
 
 impl MainLock {
   pub fn new(path : &'static str) -> Result<MainLock, Error> {
-    let lock = FileLock::create(path)?;
+    let lock = FileLock::create(String::from_str(path).unwrap())?;
     Ok(MainLock{path: path, lock: lock})
   } 
 
