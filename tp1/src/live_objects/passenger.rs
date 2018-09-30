@@ -1,11 +1,7 @@
-use rand;
-use rand::Rng;
 use live_objects::lake::Lake;
 use live_objects::live_object::LiveObject;
 
 use std::io::{Error, Write};
-use std::time::Duration;
-use std::thread::sleep;
 use std::cell::RefCell;
 
 pub struct Passenger {}

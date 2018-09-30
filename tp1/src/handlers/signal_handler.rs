@@ -1,20 +1,23 @@
 use concurrentes::signal::SignalHandler;
+use libc;
 
-pub struct SigIntHandler {
+pub struct QuitHandler {
   quit: bool
 }
 
-impl SignalHandler for SigIntHandler {
+impl SignalHandler for QuitHandler {
   fn handle(&mut self) {
-    println!("SigInt handled");
+    println!("Exit signal handled");
     self.quit = true;
+    unsafe {
+      libc::close(0);
+    }
   }
-
 }
 
-impl SigIntHandler {
-  pub fn new() -> SigIntHandler {
-    SigIntHandler {quit: false}
+impl QuitHandler {
+  pub fn new() -> QuitHandler {
+    QuitHandler {quit: false}
   }
 
   pub fn has_graceful_quit(&self) -> bool {

@@ -49,17 +49,24 @@ impl Ship {
   }
 
   fn pick_passengers(&mut self, lake: &RefCell<Lake>) {
-    let mut reader = lake.borrow_mut().get_passenger_pipe_reader(self.destination).expect("Failed to get pipe");
-    while self.current_capacity > 0 {
-      let mut buf = String::new();
-      let bytes_read = reader.read_to_string(&mut buf);
-      match bytes_read {
-        Ok(_bytes) => {
-          let passenger_id = buf.parse::<u32>();
-          println!("Abordó {:?}", passenger_id);
-          self.current_capacity -= 1;
-        },
-        Err(e) => println!("{:?}", e),
+    println!("Getting reader");
+    match lake.borrow_mut().get_passenger_pipe_reader(self.destination) {
+      Ok(mut reader) => {
+        while self.current_capacity > 0 {
+          let mut buf = String::new();
+          let bytes_read = reader.read_to_string(&mut buf);
+          match bytes_read {
+            Ok(_bytes) => {
+              let passenger_id = buf.parse::<u32>();
+              println!("Abordó {:?}", passenger_id);
+              self.current_capacity -= 1;
+            },
+            Err(e) => println!("{:?}", e),
+          }
+        }
+      }
+      Err(_e) => {
+        println!("No abordaron pasajeros");
       }
     }
   }

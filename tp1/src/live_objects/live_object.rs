@@ -1,11 +1,7 @@
-use libc::SIGINT;
-
-use concurrentes::signal::SignalHandlerDispatcher;
+use handlers::signal_handler::QuitHandler;
 
 use live_objects::main_lock::MainLock;
 use live_objects::lake::Lake;
-use live_objects::ship::Ship;
-use handlers::signal_handler::SigIntHandler;
 use misc::config::Config;
 
 use std::cell::RefCell;
@@ -20,15 +16,13 @@ pub trait LiveObject {
 }
 
 pub struct LiveObjectRunner {
-  sigint_handler: Rc<RefCell<SigIntHandler>>,
+  quit_handler: Rc<RefCell<QuitHandler>>,
   lake: RefCell<Lake>
 }
 
 impl LiveObjectRunner {
-  pub fn new() -> io::Result<(LiveObjectRunner)> {
-    let sigint_handler = Rc::new(RefCell::new(SigIntHandler::new()));
-    SignalHandlerDispatcher::register(SIGINT, sigint_handler.clone());
-
+  pub fn new(quit_handler: Rc<RefCell<QuitHandler>>) -> io::Result<(LiveObjectRunner)> {
+    
     // Load lock info
     let mut main_lock = MainLock::new(MAIN_LOCK_FILENAME)?;
     main_lock.lock.lock_exclusive()?;
@@ -45,13 +39,13 @@ impl LiveObjectRunner {
     lock_info.counter_inc();
     lock_info.save(MAIN_LOCK_FILENAME)?;
     main_lock.lock.unlock()?;
-    Ok(LiveObjectRunner{sigint_handler, lake: RefCell::new(lake)})
+    Ok(LiveObjectRunner{quit_handler, lake: RefCell::new(lake)})
   }
 
   // Main loop
   pub fn run<T: LiveObject>(&self, mut object: T) -> io::Result<()> {
     // Start object
-    while !self.sigint_handler.borrow().has_graceful_quit() {
+    while !self.quit_handler.borrow().has_graceful_quit() {
       object.tick(&self.lake)?;
     }
     Ok(())
