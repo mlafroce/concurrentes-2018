@@ -2,7 +2,7 @@ use super::ipc::flock::FileLock;
 
 use chrono::Local;
 
-use std::fs::{OpenOptions, File};
+use std::fs::OpenOptions;
 use std::io;
 use std::process;
 use std::io::{Write};

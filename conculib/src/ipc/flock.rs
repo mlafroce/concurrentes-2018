@@ -1,17 +1,16 @@
 use std::fs::{File, remove_file};
 use std::fs::OpenOptions;
-use std::str::FromStr;
 //use std::ops::Drop;
 use std::io;
 use std::io::Error;
 use std::os::unix::io::AsRawFd;
-use libc::flock as c_flock;
+use libc;
 use ipc;
 
-
+/*
 pub struct FileLockGuard<'a> {
   lock: &'a mut FileLock
-}
+}*/
 
 pub struct FileLock {
   pub file: File,
@@ -30,22 +29,25 @@ impl FileLock {
   }
 
   pub fn lock_exclusive(&mut self) -> io::Result<()> {
-    self.flock(ipc::LOCK_EX)
+    self.flock(ipc::F_WRLCK)
   }
 
   pub fn lock_shared(&mut self) -> io::Result<()> {
-    self.flock(ipc::LOCK_SH)
+    self.flock(ipc::F_RDLCK)
   }
 
   pub fn unlock(&mut self) -> io::Result<()> {
-    self.flock(ipc::LOCK_UN)
+    self.flock(ipc::F_UNLCK)
   }
 
   fn flock(&mut self, operation: i32) -> io::Result<()> {
     let fd = self.file.as_raw_fd();
+    let data = libc::flock{
+      l_type: operation as i16, l_whence: libc::SEEK_SET as i16, l_start: 0, l_len: 0, l_pid: 0
+    };
     let result;
     unsafe {
-      result = c_flock(fd, operation);
+      result = libc::fcntl(fd, libc::F_SETLKW, &data);
     }
     if result == 0 {
       Ok(())

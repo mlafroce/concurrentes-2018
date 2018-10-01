@@ -4,12 +4,13 @@ use live_objects::lake::Lake;
 use live_objects::live_object::LiveObject;
 
 use std::cell::RefCell;
-use std::io::{Error, Write, Read, BufRead, BufReader};
+use std::io;
+use std::io::{Write, BufRead, BufReader};
 use std::process;
 
 use std::ops::Drop;
 
-use concurrentes::log::{GLOBAL_LOG, Log, LogSeverity};
+use concurrentes::log::{GLOBAL_LOG, LogSeverity};
 
 pub struct Passenger {
   destination: u32,
@@ -18,9 +19,9 @@ pub struct Passenger {
 }
 
 impl LiveObject for Passenger {
-  fn tick(&mut self, lake: &RefCell<Lake>) -> Result<(), Error> {
+  fn tick(&mut self, lake: &RefCell<Lake>) -> io::Result<()> {
     self.take_ship(lake);
-    self.wait_for_destination(lake);
+    self.wait_for_destination(lake)?;
     Ok(())
   }
 }
@@ -37,16 +38,16 @@ impl Passenger {
     Passenger {current_port, destination, id}
   }
 
-  fn wait_for_destination(&mut self, lake: &RefCell<Lake>) {
+  fn wait_for_destination(&mut self, lake: &RefCell<Lake>) -> io::Result<()>{
     let msg = format!("Esperando a llegar a destino {}",
       self.destination);
     log!(msg.as_str(), LogSeverity::INFO);
     let pipe_path = format!("passenger-{:?}.fifo", self.id);
-    if let Ok(reader) = named_pipe::NamedPipeReader::open(pipe_path.as_str()) {
-      let mut buf_line = String::new();
-      let mut buf_reader = BufReader::new(reader);
-      let bytes_read = buf_reader.read_line(&mut buf_line);
-    }
+    let reader = named_pipe::NamedPipeReader::open(pipe_path.as_str())?;
+    let mut buf_line = String::new();
+    let mut buf_reader = BufReader::new(reader);
+    buf_reader.read_line(&mut buf_line)?;
+    Ok(())
   }
 
   fn take_ship(&mut self, lake: &RefCell<Lake>) {

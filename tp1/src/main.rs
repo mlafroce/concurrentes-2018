@@ -8,7 +8,7 @@ mod live_objects;
 mod misc;
 
 use concurrentes::process;
-use concurrentes::log::{GLOBAL_LOG, Log, LogSeverity};
+use concurrentes::log::{GLOBAL_LOG, LogSeverity};
 use concurrentes::signal::SignalHandlerDispatcher;
 
 use handlers::signal_handler::QuitHandler;
@@ -16,7 +16,6 @@ use handlers::signal_handler::QuitHandler;
 use live_objects::{live_object, ship::Ship, passenger::Passenger};
 
 use std::cell::RefCell;
-use std::str::FromStr;
 use std::io;
 use std::io::BufRead;
 use std::rc::Rc;
@@ -64,8 +63,8 @@ fn main() -> io::Result<()> {
   if let Some(result) = child_result {
     result
   } else {
-    for i in 0..child_counter {
-      process::waitpid(process::ANY_CHILD);
+    for _ in 0..child_counter {
+      process::waitpid(process::ANY_CHILD)?;
     }
     runner.exit()
   }
