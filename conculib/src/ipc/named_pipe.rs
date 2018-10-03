@@ -27,8 +27,10 @@ impl NamedPipe {
   /// # Example
   ///
   /// ```rust
+  /// use concurrentes::ipc::named_pipe::NamedPipe;
+  ///
   /// const NAMED_PIPE_PATH : &str = "/bin/bash";
-  /// create(NAMED_PIPE_PATH, 0666);
+  /// NamedPipe::create(NAMED_PIPE_PATH, 0666);
   /// ```
   pub fn create(path: &str, mode: i32) -> io::Result<()> {
     let path_wrapper = CString::new(path)?;

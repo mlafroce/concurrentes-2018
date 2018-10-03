@@ -17,6 +17,8 @@ impl Key {
   /// # Example
   ///
   /// ```rust, no_run
+  /// use concurrentes::ipc::Key;
+  ///
   /// const KEY_FILE : &str = "/bin/bash";
   /// Key::ftok(KEY_FILE, 0);
   /// ```
