@@ -1,7 +1,12 @@
 use rand;
 use rand::Rng;
 
+use libc;
+
 use concurrentes::log::{GLOBAL_LOG, LogSeverity};
+use concurrentes::signal::SignalHandlerDispatcher;
+
+use handlers::signal_handler::GenericHandler;
 
 use live_objects::lake::Lake;
 use live_objects::live_object::LiveObject;
@@ -9,11 +14,13 @@ use live_objects::live_object::LiveObject;
 use std::io::{Error, BufRead, BufReader};
 use std::time::Duration;
 use std::thread::sleep;
+use std::rc::Rc;
 use std::cell::RefCell;
 
 pub struct Ship {
   current_capacity: u32,
   destination: u32,
+  sigusr_handler: Rc<RefCell<GenericHandler>>,
   status: Status
 }
 
@@ -33,7 +40,7 @@ impl LiveObject for Ship {
       },
       Status::PickPassengers => {
         if self.current_capacity > 0 {
-          //self.pick_passenger(lake);
+          self.pick_passenger(lake);
           self.status = Status::Disembark;
         } else {
           self.status = Status::Disembark;
@@ -51,7 +58,10 @@ impl LiveObject for Ship {
 
 impl Ship {
   pub fn new(current_capacity: u32, destination: u32) -> Ship {
-    Ship {current_capacity, destination, status: Status::Travel}
+    // Acá me recontra abuso del supuesto de que hay un sólo barco por proceso
+    let sigusr_handler = Rc::new(RefCell::new(GenericHandler::new()));
+    SignalHandlerDispatcher::register(libc::SIGUSR1, sigusr_handler.clone());
+    Ship {current_capacity, destination, sigusr_handler, status: Status::Travel}
   }
 
   fn travel(&self, lake: &RefCell<Lake>) -> Result<(), Error> {
@@ -116,6 +126,9 @@ impl Ship {
         None
       }
     };
+    if self.sigusr_handler.borrow().get_handled() {
+      self.status = Status::Disembark;
+    }
     let msg = format!("Hay lugar para {:?} pasajeros",
       self.current_capacity);
     log!(msg.as_str(), LogSeverity::DEBUG);
