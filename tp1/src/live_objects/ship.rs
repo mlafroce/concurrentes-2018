@@ -41,7 +41,6 @@ impl LiveObject for Ship {
       Status::PickPassengers => {
         if self.current_capacity > 0 {
           self.pick_passenger(lake);
-          self.status = Status::Disembark;
         } else {
           self.status = Status::Disembark;
         }
@@ -67,33 +66,33 @@ impl Ship {
   fn travel(&self, lake: &RefCell<Lake>) -> Result<(), Error> {
     let mut rng = rand::thread_rng();
     let msecs = rng.gen::<u32>() % 1000;
-    let travel_time = Duration::from_millis(msecs as u64);
+    let travel_time = Duration::from_millis(u64::from(msecs));
     let msg = format!("Viajando {} msecs al puerto {}",
       msecs, self.destination);
-    log!(msg.as_str(), LogSeverity::INFO);
+    log!(msg.as_str(), &LogSeverity::INFO);
     sleep(travel_time);
     lake.borrow_mut().lock_port(self.destination)?;
-    log!("Puerto bloqueado", LogSeverity::DEBUG);
+    log!("Puerto bloqueado", &LogSeverity::DEBUG);
     Ok(())
   }
 
   fn disembark(&mut self, lake: &RefCell<Lake>) -> Result<(), Error> {
     let mut rng = rand::thread_rng();
     let msecs = (rng.gen::<u32>() % 1000) + 500;
-    let disembark_time = Duration::from_millis(msecs as u64);
+    let disembark_time = Duration::from_millis(u64::from(msecs));
     self.current_capacity = 2;
     let msg = format!("Desembarcando en {} msecs, {} lugares libres",
       msecs, self.current_capacity);
-    log!(msg.as_str(), LogSeverity::INFO);
+    log!(msg.as_str(), &LogSeverity::INFO);
     sleep(disembark_time);
     lake.borrow_mut().unlock_port(self.destination)?;
-    log!("Puerto desbloqueado", LogSeverity::DEBUG);
+    log!("Puerto desbloqueado", &LogSeverity::DEBUG);
     self.destination = lake.borrow_mut().get_next_port(self.destination);
     Ok(())
   }
 
   fn pick_passenger(&mut self, lake: &RefCell<Lake>) -> Option<u32> {
-    log!("Obteniendo fifo", LogSeverity::DEBUG);
+    log!("Obteniendo fifo", &LogSeverity::DEBUG);
     let pipe_reader = lake.borrow_mut().get_passenger_pipe_reader(self.destination);
     match pipe_reader {
       Ok(reader) => {
@@ -102,19 +101,19 @@ impl Ship {
         let bytes_read = buf_reader.read_line(&mut buf_line);
         let msg = format!("Levantando pasajero, leido {:?}",
               buf_line);
-            log!(msg.as_str(), LogSeverity::DEBUG);
+            log!(msg.as_str(), &LogSeverity::DEBUG);
         match bytes_read {
           Ok(0) => None,
           Ok(_) => {
             let passenger_id = buf_line.parse::<u32>().unwrap();
             let msg = format!("Abordó el pasajero {:?}",
               passenger_id);
-            log!(msg.as_str(), LogSeverity::INFO);
+            log!(msg.as_str(), &LogSeverity::INFO);
             self.current_capacity -= 1;
             Some(passenger_id)
           },
           Err(e) => {
-            log!(format!("{:?}", e).as_str(), LogSeverity::WARN);
+            log!(format!("{:?}", e).as_str(), &LogSeverity::WARN);
             None
           }
         }
@@ -122,16 +121,17 @@ impl Ship {
       Err(e) => {
         let msg = format!("Error al esperar pasajero en el puerto {}: {:?}",
           self.destination, e);
-        log!(msg.as_str(), LogSeverity::ERROR);
+        log!(msg.as_str(), &LogSeverity::ERROR);
         None
       }
     };
     if self.sigusr_handler.borrow().get_handled() {
       self.status = Status::Disembark;
+      self.sigusr_handler.borrow_mut().reset();
     }
     let msg = format!("Hay lugar para {:?} pasajeros",
       self.current_capacity);
-    log!(msg.as_str(), LogSeverity::DEBUG);
+    log!(msg.as_str(), &LogSeverity::DEBUG);
     None
   }
 }

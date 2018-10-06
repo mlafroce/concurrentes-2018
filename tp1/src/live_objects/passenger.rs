@@ -12,6 +12,7 @@ use std::ops::Drop;
 
 use concurrentes::log::{GLOBAL_LOG, LogSeverity};
 
+#[derive(Default)]
 pub struct Passenger {
   destination: u32,
   current_port: u32,
@@ -38,10 +39,10 @@ impl Passenger {
     Passenger {current_port, destination, id}
   }
 
-  fn wait_for_destination(&mut self, lake: &RefCell<Lake>) -> io::Result<()>{
+  fn wait_for_destination(&mut self, _lake: &RefCell<Lake>) -> io::Result<()>{
     let msg = format!("Esperando a llegar a destino {}",
       self.destination);
-    log!(msg.as_str(), LogSeverity::INFO);
+    log!(msg.as_str(), &LogSeverity::INFO);
     let pipe_path = format!("passenger-{:?}.fifo", self.id);
     let reader = named_pipe::NamedPipeReader::open(pipe_path.as_str())?;
     let mut buf_line = String::new();
@@ -53,13 +54,13 @@ impl Passenger {
   fn take_ship(&mut self, lake: &RefCell<Lake>) {
     let msg = format!("Tomando el barco en el puerto {}, destino {}",
       self.current_port, self.destination);
-    log!(msg.as_str(), LogSeverity::INFO);
+    log!(msg.as_str(), &LogSeverity::INFO);
     let mut writer = lake.borrow_mut().
       get_passenger_pipe_writer(self.current_port).expect("Failed to get pipe");
-    log!("Obtenido fifo", LogSeverity::DEBUG);
+    log!("Obtenido fifo", &LogSeverity::DEBUG);
     writer.write_all(self.id.to_string().as_bytes()).expect("Failed to  write");
     let writer_msg = format!("Datos enviados: {}", self.id.to_string());
-    log!(writer_msg.as_str(), LogSeverity::DEBUG);
+    log!(writer_msg.as_str(), &LogSeverity::DEBUG);
   }
 }
 

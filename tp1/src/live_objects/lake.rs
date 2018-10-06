@@ -24,7 +24,7 @@ impl Lake {
       lake_ports.push(lock);
       let passenger_pipe_path = format!("port-{:?}-board.fifo", port);
       named_pipe::NamedPipe::create(passenger_pipe_path.as_str(), 0o0644).expect("Failed to create pipe");
-      lake_ports_pipes.push(String::from(passenger_pipe_path));
+      lake_ports_pipes.push(passenger_pipe_path);
     }
     Lake {lake_ports, lake_ports_pipes}
   }
@@ -39,7 +39,7 @@ impl Lake {
       let lock = FileLock::create(port_lock_path).unwrap();
       lake_ports.push(lock);
       let passenger_pipe_path = format!("port-{:?}-board.fifo", port);
-      lake_ports_pipes.push(String::from(passenger_pipe_path));
+      lake_ports_pipes.push(passenger_pipe_path);
     }
     Lake {lake_ports, lake_ports_pipes}
   }

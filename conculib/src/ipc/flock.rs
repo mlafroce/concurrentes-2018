@@ -18,7 +18,7 @@ pub struct FileLock {
 }
 
 impl FileLock {
-  pub fn new_with_options(path: String, options: OpenOptions)  -> io::Result<FileLock> {
+  pub fn new_with_options(path: String, options: &OpenOptions)  -> io::Result<FileLock> {
     let file = options.open(path.as_str())?;
     Ok(FileLock {file, path})
   }

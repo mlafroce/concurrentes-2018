@@ -1,10 +1,12 @@
 use concurrentes::signal::SignalHandler;
 use libc;
 
+#[derive(Default)]
 pub struct QuitHandler {
   quit: bool
 }
 
+#[derive(Default)]
 pub struct GenericHandler {
   handled: bool
 }

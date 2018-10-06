@@ -30,12 +30,11 @@ impl LiveObjectRunner {
     let mut lock_info = main_lock.get_info();
     let lake_config = Config::new(MAIN_CONFIG_FILENAME, &lock_info)?;
 
-    let lake: Lake;
-    if lock_info.is_counter_zero() {
-      lake = Lake::init(&lake_config);
+    let lake = if lock_info.is_counter_zero() {
+      Lake::init(&lake_config)
     } else {
-      lake = Lake::load(&lake_config);
-    }
+      Lake::load(&lake_config)
+    };
     lock_info.counter_inc();
     lock_info.save(MAIN_LOCK_FILENAME)?;
     main_lock.lock.unlock()?;

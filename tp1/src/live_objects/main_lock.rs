@@ -20,7 +20,7 @@ pub struct MainLockInfo {
 impl MainLock {
   pub fn new(path : &'static str) -> Result<MainLock, Error> {
     let lock = FileLock::create(String::from_str(path).unwrap())?;
-    Ok(MainLock{path: path, lock: lock})
+    Ok(MainLock{path, lock})
   } 
 
   pub fn get_info(&self) -> MainLockInfo {
@@ -42,7 +42,7 @@ impl MainLockInfo {
     buf.read_line(&mut buf_line)?;
     buf_line.pop();
     let result = buf_line.parse::<i32>();
-    let counter = match result {
+    let process_counter = match result {
       Ok(read_value) => {read_value},
       _error => {0},
     };
@@ -51,7 +51,7 @@ impl MainLockInfo {
     buf.read_line(&mut buf_line)?;
     buf_line.pop();
     match buf_line.parse::<u64>() {
-      Ok(timestamp) => Ok(MainLockInfo {process_counter: counter, timestamp: timestamp}),
+      Ok(timestamp) => Ok(MainLockInfo {process_counter, timestamp}),
       Err(_e) => Err(Error::new(ErrorKind::InvalidData, "missing timestamp!")),
     }
   }
@@ -59,9 +59,9 @@ impl MainLockInfo {
   pub fn create(path: &str) -> Result<MainLockInfo, Error> {
     let metadata = metadata(path)?;
     let metadata_modified = metadata.modified()?;
-    let config_timestamp = metadata_modified.duration_since(
+    let timestamp = metadata_modified.duration_since(
       SystemTime::UNIX_EPOCH).unwrap().as_secs();
-    Ok(MainLockInfo {process_counter: 0, timestamp: config_timestamp})
+    Ok(MainLockInfo {process_counter: 0, timestamp})
   }
 
   pub fn is_counter_zero(&self) -> bool {

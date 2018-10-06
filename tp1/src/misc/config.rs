@@ -25,7 +25,7 @@ impl Config {
       return Err(Error::new(ErrorKind::InvalidData, "Invalid timestamp!"));
     }
     let config_map = Config::read_config(path)?;
-    Ok(Config {config_map: config_map, timestamp: config_timestamp})
+    Ok(Config {config_map, timestamp: config_timestamp})
   }
 
   fn read_config(path: &str) -> io::Result<HashMap<String, String>> {
@@ -34,7 +34,7 @@ impl Config {
     let mut config_map = HashMap::new();
     for line in buf.lines() {
       let buf_line = line.unwrap();
-      let values : Vec<&str> = buf_line.split("=").collect();
+      let values : Vec<&str> = buf_line.split('=').collect();
       config_map.insert(values[0].to_string(), values[1].to_string());
     }
     Ok(config_map)

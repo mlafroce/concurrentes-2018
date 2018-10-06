@@ -41,11 +41,11 @@ impl Log {
   pub fn create(path: String) -> io::Result<Log> {
     let mut options = OpenOptions::new();
     options.append(true).create(true);
-    let file_lock = FileLock::new_with_options(path, options)?;
+    let file_lock = FileLock::new_with_options(path, &options)?;
     Ok(Log{file_lock})
   }
 
-  pub fn log(&mut self, message: &str, severity: LogSeverity) -> io::Result<()>{
+  pub fn log(&mut self, message: &str, severity: &LogSeverity) -> io::Result<()>{
     self.file_lock.lock_exclusive()?;
     let date = Local::now();
     let date_str = date.format("%Y-%m-%d %H:%M:%S");
