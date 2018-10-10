@@ -57,6 +57,7 @@ impl FileLock {
   }
 
   pub fn destroy(&mut self) -> io::Result<()> {
+    println!("Destroy");
     remove_file(self.path.as_str())
   }
 }

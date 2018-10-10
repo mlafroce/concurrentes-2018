@@ -33,6 +33,7 @@ pub struct Passenger {
 enum Status {
   WaitShip,
   WaitDestination,
+  AskDestination,
   AtDestination,
   Arrive
 }
@@ -42,6 +43,7 @@ impl LiveObject for Passenger {
     match self.status {
       Status::WaitShip => self.take_ship(lake)?,
       Status::WaitDestination => self.wait_for_destination()?,
+      Status::AskDestination => self.ask_destination()?,
       Status::AtDestination => self.at_destination(lake)?,
       Status::Arrive => self.arrive(lake)?
     }
@@ -52,11 +54,12 @@ impl LiveObject for Passenger {
 impl Passenger {
   pub fn new(current_port: u32, destination: u32) -> Passenger {
     let id = process::id();
+    let flags = ipc::IPC_CREAT | ipc::IPC_EXCL | 0o660;
     let pipe_path = format!("passenger-{:?}.fifo", id);
     let lock_pipe_path = format!("passenger-{:?}.fifo.lock", id);
+    named_pipe::NamedPipe::create(pipe_path.as_str(), flags).unwrap();
     FileLock::create(lock_pipe_path.clone()).unwrap();
     let key = Key::ftok(&lock_pipe_path, 0).unwrap();
-    let flags = ipc::IPC_CREAT | ipc::IPC_EXCL | 0o660;
     let sem = Semaphore::get(&key, flags).unwrap();
     let status = Status::WaitShip;
     let msg = format!("Pasajero {}: desde el puerto {} a {}", id, current_port, destination);
@@ -70,8 +73,13 @@ impl Passenger {
     log!(msg.as_str(), &LogSeverity::INFO);
     // Acá meto un semáforo porque sino tendría que cambiar todos los open
     self.sem.wait();
+    self.status = Status::AskDestination;
+    Ok(())
+  }
+  
+  fn ask_destination(&mut self) -> io::Result<()>{
     let pipe_path = format!("passenger-{:?}.fifo", self.id);
-    log!(format!("Abriendo FIFO {} para leer puerto", pipe_path).as_str(), &LogSeverity::DEBUG);
+    log!(format!("Abriendo FIFO {} para saber a que puerto llegué", pipe_path).as_str(), &LogSeverity::DEBUG);
     let reader = named_pipe::NamedPipeReader::open(pipe_path.as_str())?;
     log!("FIFO Abierto", &LogSeverity::DEBUG);
     self.current_port = self.read_current_port(reader)?;
@@ -82,7 +90,7 @@ impl Passenger {
   fn at_destination (&mut self, lake: &RefCell<Lake>) -> io::Result<()>{
     log!(format!("Avisandole al barco si me bajo o no").as_str(), &LogSeverity::DEBUG);
     let mut writer = lake.borrow_mut().
-      get_passenger_pipe_writer(self.current_port)?;
+      get_confirmation_pipe_writer(self.current_port)?;
     if self.current_port == self.destination {
       log!(format!("Llegó a destino").as_str(), &LogSeverity::DEBUG);
       write!(writer, "{}\n", self.id)?;
@@ -106,7 +114,7 @@ impl Passenger {
     lock.lock_exclusive()?;
     log!("Obteniendo fifo", &LogSeverity::DEBUG);
     let mut writer = lake.borrow_mut().
-      get_passenger_pipe_writer(self.current_port)?;
+      get_board_pipe_writer(self.current_port)?;
     log!("Obtenido fifo", &LogSeverity::DEBUG);
     write!(writer, "{}\n", self.id)?;
     let writer_msg = format!("Datos enviados: {}", self.id.to_string());
@@ -153,8 +161,10 @@ impl Passenger {
 
 impl Drop for Passenger {
   fn drop(&mut self) {
-    let pipe_path = format!("passenger-{:?}.fifo.lock", self.id);
+    let pipe_path = format!("passenger-{:?}.fifo", self.id);
+    let lock_pipe_path = format!("passenger-{:?}.fifo.lock", self.id);
     self.sem.remove();
     named_pipe::NamedPipe::unlink(pipe_path.as_str()).unwrap();
+    named_pipe::NamedPipe::unlink(lock_pipe_path.as_str()).unwrap();
   }
 }

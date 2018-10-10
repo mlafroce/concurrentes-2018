@@ -105,7 +105,6 @@ impl Ship {
       let key = Key::ftok(&lock_pipe_path, 0).unwrap();
       log!(format!("Obteniendo semaforo {}", passenger).as_str(), &LogSeverity::DEBUG);
       let sem = Semaphore::get(&key, 0).unwrap();
-      log!(format!("Signal! {}", passenger).as_str(), &LogSeverity::DEBUG);
       sem.signal()?;
       log!(format!("Abriendo FIFO {} para escribir puerto", pipe_path).as_str(), &LogSeverity::DEBUG);
       let mut writer = named_pipe::NamedPipeWriter::open(pipe_path.as_str())?;
@@ -131,7 +130,7 @@ impl Ship {
 
   fn pick_passenger(&mut self, lake: &RefCell<Lake>) -> Option<u32> {
     log!("Obteniendo fifo", &LogSeverity::DEBUG);
-    let pipe_reader = lake.borrow_mut().get_passenger_pipe_reader(self.destination);
+    let pipe_reader = lake.borrow_mut().get_board_pipe_reader(self.destination);
     match pipe_reader {
       Ok(reader) => {
         let parsed_data = self.parse_passenger(reader);
@@ -158,7 +157,7 @@ impl Ship {
   }
 
   fn read_passenger_reply(&self, lake: &RefCell<Lake>) -> io::Result<Option<u32>>{
-    let reader = lake.borrow_mut().get_passenger_pipe_reader(self.destination)?;
+    let reader = lake.borrow_mut().get_confirmation_pipe_reader(self.destination)?;
     let mut buf_line = String::new();
     let mut buf_reader = BufReader::new(reader);
     buf_reader.read_line(&mut buf_line)?;
