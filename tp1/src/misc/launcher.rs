@@ -35,11 +35,14 @@ impl Launcher {
     selection: PromptSelection) -> io::Result<()> {
     match selection {
       PromptSelection::Ship => {
-        let ship = Ship::new(2, 0);
+        let current_port = runner.get_random_port();
+        let ship = Ship::new(1, current_port);
         runner.run(ship)
       },
       PromptSelection::Passenger => {
-        let passenger = Passenger::new();
+        let destination = runner.get_random_port();
+        let current_port = runner.get_random_port();
+        let passenger = Passenger::new(current_port, destination);
         runner.run(passenger)
       },
       PromptSelection::Exit => unreachable!()

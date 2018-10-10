@@ -16,7 +16,8 @@ fn main() -> io::Result<()> {
   let key = Key::ftok(file!(), 0)?;
   println!("Key obtained: {}", key.key);
   let flags = ipc::IPC_CREAT | ipc::IPC_EXCL | 0o660;
-  let mut semaphore = Semaphore::get(&key, 0, flags).unwrap();
+  let mut semaphore = Semaphore::get(&key, flags).unwrap();
+  semaphore.init(0);
 
   // Parent reads shared memory after child writes
   let fork_result = process::fork()?;

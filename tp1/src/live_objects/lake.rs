@@ -1,5 +1,8 @@
 use misc::config::Config;
 
+use rand;
+use rand::Rng;
+
 use concurrentes::ipc::flock::FileLock;
 use concurrentes::ipc::named_pipe;
 use std::io;
@@ -70,6 +73,12 @@ impl Lake {
   pub fn get_next_port(&self, current_port: u32) -> u32{
     let num_ports = self.lake_ports.len();
     (current_port + 1) % num_ports as u32
+  }
+
+  pub fn get_random_port(&self) -> u32{
+    let mut rng = rand::thread_rng();
+    let num_ports = self.lake_ports.len() as u32;
+    rng.gen::<u32>() % num_ports
   }
 
   pub fn lock_port(&mut self, port: u32) -> Result<(), Error> {

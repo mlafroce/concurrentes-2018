@@ -65,4 +65,8 @@ impl LiveObjectRunner {
     // Exit
     Ok(())
   }
+
+  pub fn get_random_port(&self) -> u32 {
+    self.lake.borrow().get_random_port()
+  }
 }

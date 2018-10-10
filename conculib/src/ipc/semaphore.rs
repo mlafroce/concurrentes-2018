@@ -12,27 +12,28 @@ pub struct Semaphore {
 }
 
 impl Semaphore {
-  pub fn get(key: &Key, init_value: i32, flags: i32) -> io::Result<Semaphore> {
+  pub fn get(key: &Key, flags: i32) -> io::Result<Semaphore> {
     let id;
     unsafe {
       id = libc::semget(key.key, 1, flags);
-      if id == -1 {
-        Err(io::Error::last_os_error())
-      } else {
-        let sem = Semaphore{id};
-        sem.init(init_value);
-        Ok(sem)
-      }
+    }
+    if id != -1 {
+      Ok(Semaphore{id})
+    } else {
+      Err(io::Error::last_os_error())
     }
   }
 
-  unsafe fn init(&self, init_value: i32) -> io::Result<()> {
+  pub fn init(&self, init_value: i32) -> io::Result<()> {
     let mut buf = sembuf {
       sem_num: 0,
       sem_op: init_value as libc::c_short,
       sem_flg: 0
     };
-    let result = libc::semctl(self.id, 0, SETVAL, buf);
+    let result;
+    unsafe {
+      result = libc::semctl(self.id, 0, SETVAL, buf);
+    }
     if result != -1 {
       Ok(())
     } else {
