@@ -4,6 +4,7 @@ use rand::Rng;
 use libc;
 
 use concurrentes::ipc::Key;
+use concurrentes::ipc::flock::FileLock;
 use concurrentes::ipc::semaphore::Semaphore;
 use concurrentes::ipc::named_pipe;
 use concurrentes::log::{GLOBAL_LOG, LogSeverity};
@@ -99,9 +100,14 @@ impl Ship {
     for passenger in &self.passenger_vec {
       log!(format!("Notificando pasajero {}", passenger).as_str(), &LogSeverity::DEBUG);
       let pipe_path = format!("passenger-{:?}.fifo", passenger);
-      let key = Key::ftok(&pipe_path, 0).unwrap();
+      let lock_pipe_path = format!("passenger-{:?}.fifo.lock", passenger);
+      FileLock::create(lock_pipe_path.clone()).unwrap();
+      let key = Key::ftok(&lock_pipe_path, 0).unwrap();
+      log!(format!("Obteniendo semaforo {}", passenger).as_str(), &LogSeverity::DEBUG);
       let sem = Semaphore::get(&key, 0).unwrap();
+      log!(format!("Signal! {}", passenger).as_str(), &LogSeverity::DEBUG);
       sem.signal()?;
+      log!(format!("Abriendo FIFO {} para escribir puerto", pipe_path).as_str(), &LogSeverity::DEBUG);
       let mut writer = named_pipe::NamedPipeWriter::open(pipe_path.as_str())?;
       log!(format!("Pipe abierto {}", passenger).as_str(), &LogSeverity::DEBUG);
       write!(writer, "{}\n", self.destination)?;

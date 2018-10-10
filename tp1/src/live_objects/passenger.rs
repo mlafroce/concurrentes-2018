@@ -53,8 +53,9 @@ impl Passenger {
   pub fn new(current_port: u32, destination: u32) -> Passenger {
     let id = process::id();
     let pipe_path = format!("passenger-{:?}.fifo", id);
-    FileLock::create(pipe_path.clone()).unwrap();
-    let key = Key::ftok(&pipe_path, 0).unwrap();
+    let lock_pipe_path = format!("passenger-{:?}.fifo.lock", id);
+    FileLock::create(lock_pipe_path.clone()).unwrap();
+    let key = Key::ftok(&lock_pipe_path, 0).unwrap();
     let flags = ipc::IPC_CREAT | ipc::IPC_EXCL | 0o660;
     let sem = Semaphore::get(&key, flags).unwrap();
     let status = Status::WaitShip;
@@ -70,7 +71,7 @@ impl Passenger {
     // Acá meto un semáforo porque sino tendría que cambiar todos los open
     self.sem.wait();
     let pipe_path = format!("passenger-{:?}.fifo", self.id);
-    log!("Abriendo FIFO para leer puerto", &LogSeverity::DEBUG);
+    log!(format!("Abriendo FIFO {} para leer puerto", pipe_path).as_str(), &LogSeverity::DEBUG);
     let reader = named_pipe::NamedPipeReader::open(pipe_path.as_str())?;
     log!("FIFO Abierto", &LogSeverity::DEBUG);
     self.current_port = self.read_current_port(reader)?;
@@ -99,9 +100,9 @@ impl Passenger {
       self.current_port, self.destination);
     log!(msg.as_str(), &LogSeverity::INFO);
     // Mover esto al TDA fifo?
-    let pipe_path = format!("port-{:?}-board.fifo.lock", self.current_port);
+    let lock_pipe_path = format!("port-{:?}-board.fifo.lock", self.current_port);
     // En cierta forma el lock es un molinete :D
-    let mut lock = FileLock::create(pipe_path)?;
+    let mut lock = FileLock::create(lock_pipe_path)?;
     lock.lock_exclusive()?;
     log!("Obteniendo fifo", &LogSeverity::DEBUG);
     let mut writer = lake.borrow_mut().
@@ -152,7 +153,7 @@ impl Passenger {
 
 impl Drop for Passenger {
   fn drop(&mut self) {
-    let pipe_path = format!("passenger-{:?}.fifo", self.id);
+    let pipe_path = format!("passenger-{:?}.fifo.lock", self.id);
     self.sem.remove();
     named_pipe::NamedPipe::unlink(pipe_path.as_str()).unwrap();
   }
