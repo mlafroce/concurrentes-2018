@@ -1,5 +1,8 @@
+use libc;
+
 mod key;
 pub mod shmem;
+pub mod semaphore;
 pub mod flock;
 pub mod named_pipe;
 pub use self::key::Key;
@@ -13,6 +16,16 @@ pub const IPC_CREAT  : i32 = 0o1000;   /* create if key is nonexistent */
 pub const IPC_EXCL   : i32 = 0o2000;   /* fail if key exists */
 pub const IPC_NOWAIT : i32 = 0o4000;   /* return error on wait */
 
+pub const SEM_UNDO     : i32 = 0x1000;
+pub const SETVAL     : i32 = 16;
+
 pub const F_RDLCK: i32 = 0; /* Shared lock */
 pub const F_WRLCK: i32 = 1; /* Exclusive lock */
 pub const F_UNLCK: i32 = 2; /* Unlock */
+
+#[repr(C)]
+pub struct sembuf {
+    pub sem_num: libc::c_ushort,
+    pub sem_op: libc::c_short,
+    pub sem_flg: libc::c_short,
+}
