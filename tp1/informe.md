@@ -2,11 +2,13 @@
 
 ## Procesos detectados
 
-Se reconocen 3 tipos de procesos
+Se reconocen 4 tipos de procesos
 
 * Procesos *Barco*: se encarga de transportar turistas entre ciudades. Los barcos pueden inspeccionarse a sí mismos (según el evento disparado por el supervisor, son prefectura o inspector)
 
 * Procesos *Viajero*: se transportan entre ciudades utilizando barcos. Adicionalmente, hay *viajeros* (turistas) que pueden viajar a otras ciudades por cuenta propia (no pueden viajar a otra ciudad mientras están viajando).
+
+#### Procesos no implementados
 
 * Procesos *Inspector*: Puede inspeccionar barcos ubicados en ciudades, mientras estén en el estado *puerto*. Controla los pasajeros.
 
@@ -17,10 +19,17 @@ Se reconocen 3 tipos de procesos
 * Proceso *Supervisor*: el supervisor no tiene estado, se mantiene esperando entradas del usuario para accionar los eventos de inspección.
 
 * Procesos *Barco*: Cada barco puede estar en los siguientes estados
+Travel,
+  LeavePassengers,
+  PickPassengers,
+  Disembark
+    * *En viaje*: el barco está navegando, e intenta anclar en un puerto (o espera a que esté disponible)
+
+    * *Levantando pasajeros*: abre un fifo para comunicarse con los pasajeros que están esperando en el puerto.
+
+    * *Descargando pasajeros*: abre el fifo correspondiente a cada pasajero y le pregunta si llegó a su destino o no. Luego se desliga de los que se bajaron.
 
     * *En puerto*: el barco está asociado a una ciudad, puede descargar y cargar viajeros. Puede haber un sólo barco por ciudad.
-
-    * *En viaje*: el barco está navegando, los pasajeros dentro del barco no pueden cambiar su estado.
 
 * Procesos *Viajero*: Cada viajero puede estar en los siguientes estados
 
