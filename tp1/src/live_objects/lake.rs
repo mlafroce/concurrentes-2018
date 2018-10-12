@@ -73,10 +73,6 @@ impl Lake {
     for pipe in &self.confirmation_pipes {
       named_pipe::NamedPipe::unlink(pipe.as_str())?;
     }
-    for lock in &self.boarding_locks {
-      named_pipe::NamedPipe::unlink(lock.as_str())?;
-    }
-
     Ok(())
   }
 

@@ -4,12 +4,18 @@ use std::mem;
 use std::ptr;
 
 use libc::{sigaction, sigaddset, sigemptyset, sighandler_t};
-use libc::{c_void};
+use libc::{c_void, alarm as c_alarm};
 
 thread_local! {
   static SIG_REGISTER: RefCell<SignalHandlerDispatcher> = RefCell::new(SignalHandlerDispatcher {
     handlers: vec![]
   });
+}
+
+pub fn alarm(secs: u32) {
+  unsafe {
+    c_alarm(secs);
+  }
 }
 
 pub trait SignalHandler {

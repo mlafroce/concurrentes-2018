@@ -8,7 +8,7 @@ use concurrentes::ipc::flock::FileLock;
 use concurrentes::ipc::semaphore::Semaphore;
 use concurrentes::ipc::named_pipe;
 use concurrentes::log::{GLOBAL_LOG, LogSeverity};
-use concurrentes::signal::SignalHandlerDispatcher;
+use concurrentes::signal::{SignalHandlerDispatcher, alarm};
 
 use handlers::signal_handler::GenericHandler;
 
@@ -27,6 +27,7 @@ pub struct Ship {
   destination: u32,
   passenger_vec: Vec<u32>,
   sigusr_handler: Rc<RefCell<GenericHandler>>,
+  sigalarm_handler: Rc<RefCell<GenericHandler>>,
   status: Status
 }
 
@@ -61,8 +62,11 @@ impl Ship {
   pub fn new(current_capacity: u32, destination: u32) -> Ship {
     // Acá me recontra abuso del supuesto de que hay un sólo barco por proceso
     let sigusr_handler = Rc::new(RefCell::new(GenericHandler::new()));
+    let sigalarm_handler = Rc::new(RefCell::new(GenericHandler::new()));
     SignalHandlerDispatcher::register(libc::SIGUSR1, sigusr_handler.clone());
-    Ship {current_capacity, destination, sigusr_handler,
+    SignalHandlerDispatcher::register(libc::SIGALRM, sigalarm_handler.clone());
+    Ship {current_capacity, destination,
+      sigalarm_handler, sigusr_handler,
       status: Status::Travel, passenger_vec: Vec::new()}
   }
 
@@ -130,7 +134,9 @@ impl Ship {
 
   fn pick_passenger(&mut self, lake: &RefCell<Lake>) -> Option<u32> {
     log!("Obteniendo fifo", &LogSeverity::DEBUG);
+    alarm(10);
     let pipe_reader = lake.borrow_mut().get_board_pipe_reader(self.destination);
+    alarm(0);
     match pipe_reader {
       Ok(reader) => {
         let parsed_data = self.parse_passenger(reader);
@@ -146,9 +152,9 @@ impl Ship {
         None
       }
     };
-    if self.sigusr_handler.borrow().get_handled() {
+    if self.sigalarm_handler.borrow().get_handled() {
       self.status = Status::Disembark;
-      self.sigusr_handler.borrow_mut().reset();
+      self.sigalarm_handler.borrow_mut().reset();
     }
     let msg = format!("Hay lugar para {:?} pasajeros",
       self.current_capacity);
