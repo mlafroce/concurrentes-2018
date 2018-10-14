@@ -1,36 +1,12 @@
+use std::io;
+
 use live_objects::{live_object, ship::Ship, passenger::Passenger};
 
-use std::io;
-use std::io::BufRead;
+use misc::tui::PromptSelection;
 
-pub struct Launcher {}
-
-#[derive(Copy, Clone, Debug)]
-pub enum PromptSelection {
-  Ship,
-  Passenger,
-  Exit
-}
+pub struct Launcher;
 
 impl Launcher {
-  pub fn prompt() -> Option<PromptSelection> {
-    println!("Ingrese un tipo de proceso a lanzar");
-    println!("1) Barco");
-    println!("2) Pasajero");
-    println!("3) Salir");
-    let stdin = io::stdin();
-    if let Some(line) = stdin.lock().lines().next() {
-      let value = line.expect("Value failed");
-      return match value.as_ref() {
-        "1" => Some(PromptSelection::Ship),
-        "2" => Some(PromptSelection::Passenger),
-        "3" => Some(PromptSelection::Exit),
-        _ => None
-      };
-    }
-    None
-  }
-
   pub fn launch(runner: &mut live_object::LiveObjectRunner,
     selection: PromptSelection) -> io::Result<()> {
     match selection {

@@ -4,7 +4,8 @@ version = "0.1.0"
 authors = ["Matías Lafroce <matias@mini-parche>"]
 
 [dependencies]
-
 concurrentes = { path = "../conculib" }
 libc = "0.2"
 rand = "0.5.5"
+ncurses = "5.94.0"
+getopts = "0.2"

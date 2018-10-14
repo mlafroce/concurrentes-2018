@@ -1,6 +1,8 @@
 #[macro_use(log)]
 extern crate concurrentes;
+extern crate getopts;
 extern crate libc;
+extern crate ncurses;
 extern crate rand;
 
 mod handlers;
@@ -15,47 +17,66 @@ use handlers::signal_handler::QuitHandler;
 
 use live_objects::live_object;
 
-use misc::launcher::{Launcher, PromptSelection};
+use misc::launcher::Launcher;
+use misc::tui::{Tui, PromptSelection};
+use misc::args_parser::ArgsParser;
 
 use std::cell::RefCell;
+use std::collections::HashMap;
+use std::env;
 use std::io;
 use std::process::id as pid;
 use std::rc::Rc;
 
 
 fn main() -> io::Result<()> {
+  let args: Vec<String> = env::args().collect();
+  let handler = ArgsParser::new();
   let quit_handler = Rc::new(RefCell::new(QuitHandler::new()));
-  let mut exit = false;
-  log!("Iniciando la aplicación", &LogSeverity::INFO);
   SignalHandlerDispatcher::register(libc::SIGINT, quit_handler.clone());
   SignalHandlerDispatcher::register(libc::SIGTERM, quit_handler.clone());
+  // Si las opciones son válidas, inicio el programa. Si hubo pedido de
+  // ayuda o error de sintaxis, no hago nada.
+  if let Some(options) = handler.handle(args) {
+    run(quit_handler, options)?;
+  } 
+  
+  Ok(())
+}
+
+fn run(quit_handler: Rc<RefCell<QuitHandler>>,
+    options: HashMap<String, i32>) -> io::Result<()> {
+  let options_cell = RefCell::new(options);
+  let mut tui = Tui::new(options_cell);
+  let mut quit = false;
   let mut child_result = None;
   let mut child_counter = 0;
   let mut runner = live_object::LiveObjectRunner::new(quit_handler.clone())?;
-  while !exit {
-    let selection = Launcher::prompt();
+  while !quit {
+    let selection = tui.prompt();
     match selection {
-      Some(PromptSelection::Exit) => exit = true,
+      Some(PromptSelection::Exit) => quit = true,
       Some(value) => {
         let result = process::fork();
         match result {
           Ok(process::ForkResult::Parent{child}) => {
             log!(format!("El hijo {:?} fue lanzado", child).as_str(), &LogSeverity::INFO);
+            tui.print_launch(value, child);
             child_counter += 1;
           },
           Ok(process::ForkResult::Child) => {
+            quit = true;
             child_result = Some(Launcher::launch(&mut runner, value));
           },
           Err(_e) => {
             child_result = Some(Err(io::Error::last_os_error()));
           }
         }
-      }
-      None => println!("Linea inválida")
+      },
+      None => tui.print_invalid_input()
     }
-    exit = exit || quit_handler.borrow().has_graceful_quit();
+    quit = quit || quit_handler.borrow().has_graceful_quit();
   }
-
   if let Some(result) = child_result {
     let msg = format!("El proceso {:?} fue terminó con resultado {:?}", pid(), result);
     log!(msg.as_str(), &LogSeverity::INFO);
