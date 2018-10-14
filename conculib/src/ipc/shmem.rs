@@ -10,12 +10,17 @@ use std::mem;
 use std::ptr;
 use libc::c_void;
 
+/// Wrapper para trabajar con memoria compartida
+///
+/// Posee un id del IPC y un puntero hacia la memoria compartida. La estructura es un template para
+/// reservar un buffer del tamaño de una unidad de `<T>`
 pub struct Shmem<T> {
   id: i32,
   data: *mut T
 }
 
 impl <T> Shmem<T> {
+  /// Obtiene un id de memoria compartida correspondiente a la clave `key`
   pub fn get(key: &Key, flags: i32) -> Result<Shmem<T>, Error> {
     let id;
     unsafe {
@@ -28,6 +33,7 @@ impl <T> Shmem<T> {
     }
   }
 
+  /// Realiza operaciones de control
   pub unsafe fn control(&self, cmd: i32, buf: *mut shmid_ds) -> Result<(), Error> {
     let result;
     result = c_shmctl(self.id, cmd, buf);
@@ -38,6 +44,7 @@ impl <T> Shmem<T> {
     }
   }
 
+  /// Adosa la memoria compartida obtenida
   pub fn attach(&mut self, flags:i32) -> Result<(), Error> {
     unsafe {
       self.data = c_shmat(self.id, ptr::null(), flags) as *mut T;
@@ -49,6 +56,7 @@ impl <T> Shmem<T> {
     }
   }
 
+  /// Desliga la memoria compartida adosada previamente
   pub fn detach(&mut self) -> Result<(), Error> {
     let result;
     unsafe {
@@ -61,18 +69,21 @@ impl <T> Shmem<T> {
     }
   }
 
+  /// Elimina el IPC de memoria compartida
   pub fn destroy(self) -> Result<(), Error> {
     unsafe {
       self.control(IPC_RMID, ptr::null_mut())
     }
   }
 
-  pub fn get_data(&self) -> & T {
+  /// Obtiene una copia del dato al que apunta la memoria compartida
+  pub fn get_data(&self) -> &T {
     unsafe {
       &*self.data
     }
   }
 
+  /// Almacena el dato en memoria compartida
   pub fn set_data(&mut self, data: T) {
     unsafe {
       *self.data = data;

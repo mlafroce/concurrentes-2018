@@ -1,18 +1,18 @@
 use concurrentes::signal::SignalHandler;
 use libc;
 
+/// Handler para una salida agraciada
 #[derive(Default)]
 pub struct QuitHandler {
   quit: bool
 }
 
+/// Handler genérico multiuso
 #[derive(Default)]
 pub struct GenericHandler {
   handled: bool
 }
 
-/// Sets `quit` flag true and closes stdin in order to finish launcher prompt
-/// 
 impl SignalHandler for QuitHandler {
   fn handle(&mut self) {
     self.quit = true;
@@ -23,11 +23,12 @@ impl SignalHandler for QuitHandler {
 }
 
 impl QuitHandler {
+  /// Constructor default
   pub fn new() -> QuitHandler {
     QuitHandler {quit: false}
   }
 
-  /// Returns true if signal got handled
+  /// Devuelve `true` si la señal fue capturada
   pub fn has_graceful_quit(&self) -> bool {
     self.quit
   }
@@ -39,19 +40,18 @@ impl SignalHandler for GenericHandler {
   }
 }
 
-/// Generic handler for multiple uses
 impl GenericHandler {
-  /// Default constructor
+  /// Constructor default 
   pub fn new() -> GenericHandler {
     GenericHandler {handled: false}
   }
 
-  /// Returs `true` if signal got handled
+  /// Devuelve `true` si la señal fue capturada
   pub fn get_handled(&self) -> bool {
     self.handled
   }
 
-  /// Sets `handled` flag on false
+  /// Resetea el indicador de captura
   pub fn reset(&mut self) {
     self.handled = false;
   }

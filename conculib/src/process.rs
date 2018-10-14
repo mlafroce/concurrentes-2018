@@ -32,6 +32,8 @@ pub fn fork() -> Result<ForkResult, Error> {
   }
 }
 
+/// Espera a que el proceso con pid `child` termine la ejecución, y libera sus recursos.
+/// Se puede utilizar `process::ANYCHILD` para esperar a cualquier proceso.
 pub fn waitpid(child: pid_t) -> Result<pid_t, Error> {
   let pid;
   unsafe {

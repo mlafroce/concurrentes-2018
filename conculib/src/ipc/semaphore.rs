@@ -7,11 +7,13 @@ use std::mem;
 use std::ptr;
 use libc::c_void;
 
+/// Wrapper para semáforo SystemV
 pub struct Semaphore {
   id: i32,
 }
 
 impl Semaphore {
+  /// Obtiene un semáforo (array de tamaño 1) según la clave asignada
   pub fn get(key: &Key, flags: i32) -> io::Result<Semaphore> {
     let id;
     unsafe {
@@ -24,6 +26,7 @@ impl Semaphore {
     }
   }
 
+  /// Inicializa un semáforo en el valor pasado por parámetro.
   pub fn init(&self, init_value: i32) -> io::Result<()> {
     let mut buf = sembuf {
       sem_num: 0,
@@ -41,18 +44,21 @@ impl Semaphore {
     }
   }
 
+  /// Resta uno al valor del semáforo, y se bloquea si este queda en negativo
   pub fn wait(&self) -> io::Result<()> {
     unsafe {
       self.modify(-1)
     }
   }
 
+  /// Suma uno al valor del semáforo.
   pub fn signal(&self) -> io::Result<()> {
     unsafe {
       self.modify(1)
     }
   }
 
+  /// Llamada a semop para realizar operaciones sobre el semáforo de forma nativa
   unsafe fn modify(&self, value: i32) -> io::Result<()> {
     let mut buf = sembuf {
       sem_num: 0,
@@ -67,6 +73,7 @@ impl Semaphore {
     }
   }
 
+  /// Elimina el IPC del sistema
   pub fn remove(&mut self) {
     unsafe {
       libc::semctl(self.id, 0, IPC_RMID);

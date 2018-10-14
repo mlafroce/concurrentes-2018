@@ -1,5 +1,17 @@
 # Lake Concu
 
+## Bibliotecas utilizadas
+
+Para el proyecto se utilizaron las siguientes bibliotecas
+
+* `libc`: biblioteca con wrappers a funciones nativas de C, necesaria para llamar a todas las syscalls vistas en clase.
+
+* `rand`: biblioteca para generar números aleatorios.
+
+* `ncurses`: wrapper de la biblioteca para interfaces de texto (TUIs) en C con el mismo nombre.
+
+* `getopts`: = wrapper de la biblioteca de C `getopt`, que facilita el "parseo" de argumentos del programa.
+
 ## Procesos detectados
 
 Se reconocen 4 tipos de procesos

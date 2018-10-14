@@ -29,6 +29,11 @@ use std::process::id as pid;
 use std::rc::Rc;
 
 
+/// ConcuLake
+/// 
+/// Lanzador de procesos para el TP1 ConcuLake
+/// Interpreta argumentos pasados por linea de comando para facilitar el
+/// lanzamiento de procesos.
 fn main() -> io::Result<()> {
   let args: Vec<String> = env::args().collect();
   let handler = ArgsParser::new();
@@ -44,18 +49,23 @@ fn main() -> io::Result<()> {
   Ok(())
 }
 
+
 fn run(quit_handler: Rc<RefCell<QuitHandler>>,
     options: HashMap<String, i32>) -> io::Result<()> {
   let options_cell = RefCell::new(options);
+  // Inicio la interfaz de texto
   let mut tui = Tui::new(options_cell);
   let mut quit = false;
   let mut child_result = None;
   let mut child_counter = 0;
+  // Objeto que se encarga de crear y destruir IPCs
+  // También provee a los hijos de acceso a los IPCs creados por el padre.
   let mut runner = live_object::LiveObjectRunner::new(quit_handler.clone())?;
   while !quit {
     let selection = tui.prompt();
     match selection {
       Some(PromptSelection::Exit) => quit = true,
+      // Si tengo una opción válida
       Some(value) => {
         let result = process::fork();
         match result {
@@ -77,11 +87,13 @@ fn run(quit_handler: Rc<RefCell<QuitHandler>>,
     }
     quit = quit || quit_handler.borrow().has_graceful_quit();
   }
+  // Fin del programa para los procesos hijos.
   if let Some(result) = child_result {
     let msg = format!("El proceso {:?} fue terminó con resultado {:?}", pid(), result);
     log!(msg.as_str(), &LogSeverity::INFO);
     result
   } else {
+  // El padre hace join de todos los hijos.
     for _ in 0..child_counter {
       let child_pid = process::waitpid(process::ANY_CHILD)?;
       log!(format!("El hijo {:?} fue unido", child_pid).as_str(), &LogSeverity::INFO);

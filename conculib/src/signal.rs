@@ -7,33 +7,42 @@ use libc::{sigaction, sigaddset, sigemptyset, sighandler_t};
 use libc::{c_void, alarm as c_alarm};
 
 thread_local! {
+  /// Vector global con handlers de señales
   static SIG_REGISTER: RefCell<SignalHandlerDispatcher> = RefCell::new(SignalHandlerDispatcher {
     handlers: vec![]
   });
 }
 
+/// Crea una alarma con tiempo `secs`. Si `secs` es 0, se desactiva.
+/// Si pasan la cantidad de segundos pasada por parámetro, se emite la señal
+/// `SIGALRM`
 pub fn alarm(secs: u32) {
   unsafe {
     c_alarm(secs);
   }
 }
 
+/// Interfaz para todos los manejadores de señales
 pub trait SignalHandler {
   fn handle(&mut self);
 }
 
+/// Manejador por defector (Nulo)
 struct NullSignalHandler {}
 
 impl SignalHandler for NullSignalHandler {
   fn handle(&mut self) {}
 }
 
+/// Despachador de manejadores
 pub struct SignalHandlerDispatcher {
+  /// Vector con las distitnas instancias de SignalHandler
   handlers: Vec<Rc<RefCell<SignalHandler>>>
 }
 
-impl SignalHandlerDispatcher {
 
+impl SignalHandlerDispatcher {
+  /// Registra un manejador de señales
   pub fn register(signum: i32, handler: Rc<RefCell<SignalHandler>>) {
     let _signum = signum as usize;
     SIG_REGISTER.with(|cell| {
@@ -55,6 +64,8 @@ impl SignalHandlerDispatcher {
     }
   }
 
+  /// Función llamada al recibir una señal. Busca el handler correspondiente
+  /// a `signum` y ejecuta `handle()` (método del Trait `SignalHandler`)
   fn dispatch(signum: i32) {
     SIG_REGISTER.with(|cell| {
       let mut dispatcher = cell.borrow_mut();

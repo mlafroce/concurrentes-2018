@@ -1,9 +1,13 @@
 use libc;
 
 mod key;
+/// Mdulo de memoria compartida
 pub mod shmem;
+/// Módulo de semáforos
 pub mod semaphore;
+/// Módulo de Filelocks
 pub mod flock;
+/// Módulo de FIFOs
 pub mod named_pipe;
 pub use self::key::Key;
 
@@ -23,6 +27,7 @@ pub const F_RDLCK: i32 = 0; /* Shared lock */
 pub const F_WRLCK: i32 = 1; /* Exclusive lock */
 pub const F_UNLCK: i32 = 2; /* Unlock */
 
+/// Estructura para operar con la biblioteca nativa de semáforos
 #[repr(C)]
 pub struct sembuf {
     pub sem_num: libc::c_ushort,
