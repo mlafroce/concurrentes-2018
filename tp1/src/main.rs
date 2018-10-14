@@ -29,11 +29,6 @@ use std::process::id as pid;
 use std::rc::Rc;
 
 
-/// ConcuLake
-/// 
-/// Lanzador de procesos para el TP1 ConcuLake
-/// Interpreta argumentos pasados por linea de comando para facilitar el
-/// lanzamiento de procesos.
 fn main() -> io::Result<()> {
   let args: Vec<String> = env::args().collect();
   let handler = ArgsParser::new();
@@ -54,7 +49,7 @@ fn run(quit_handler: Rc<RefCell<QuitHandler>>,
     options: HashMap<String, i32>) -> io::Result<()> {
   let options_cell = RefCell::new(options);
   // Inicio la interfaz de texto
-  let mut tui = Tui::new(options_cell);
+  let tui = Tui::new(options_cell);
   let mut quit = false;
   let mut child_result = None;
   let mut child_counter = 0;

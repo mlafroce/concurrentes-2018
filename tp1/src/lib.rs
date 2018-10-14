@@ -1,4 +1,9 @@
 #[macro_use(log)]
+/// ConcuLake
+/// 
+/// Lanzador de procesos para el TP1 ConcuLake
+/// Interpreta argumentos pasados por linea de comando para facilitar el
+/// lanzamiento de procesos.
 extern crate concurrentes;
 extern crate getopts;
 extern crate libc;

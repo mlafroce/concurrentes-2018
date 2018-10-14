@@ -26,7 +26,6 @@ pub struct Ship {
   current_capacity: u32,
   destination: u32,
   passenger_vec: Vec<u32>,
-  sigusr_handler: Rc<RefCell<GenericHandler>>,
   sigalarm_handler: Rc<RefCell<GenericHandler>>,
   status: Status
 }
@@ -61,12 +60,9 @@ impl LiveObject for Ship {
 impl Ship {
   pub fn new(current_capacity: u32, destination: u32) -> Ship {
     // Acá me recontra abuso del supuesto de que hay un sólo barco por proceso
-    let sigusr_handler = Rc::new(RefCell::new(GenericHandler::new()));
     let sigalarm_handler = Rc::new(RefCell::new(GenericHandler::new()));
-    SignalHandlerDispatcher::register(libc::SIGUSR1, sigusr_handler.clone());
     SignalHandlerDispatcher::register(libc::SIGALRM, sigalarm_handler.clone());
-    Ship {current_capacity, destination,
-      sigalarm_handler, sigusr_handler,
+    Ship {current_capacity, destination, sigalarm_handler,
       status: Status::Travel, passenger_vec: Vec::new()}
   }
 

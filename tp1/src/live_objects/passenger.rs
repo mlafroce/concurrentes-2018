@@ -72,7 +72,7 @@ impl Passenger {
       self.destination);
     log!(msg.as_str(), &LogSeverity::INFO);
     // Acá meto un semáforo porque sino tendría que cambiar todos los open
-    self.sem.wait();
+    self.sem.wait()?;
     self.status = Status::AskDestination;
     Ok(())
   }

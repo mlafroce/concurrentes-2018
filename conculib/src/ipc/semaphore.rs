@@ -3,9 +3,6 @@ use libc::sembuf;
 use std::io;
 use ipc::{IPC_RMID, SETVAL, SEM_UNDO};
 use ipc::key::Key;
-use std::mem;
-use std::ptr;
-use libc::c_void;
 
 /// Wrapper para semáforo SystemV
 pub struct Semaphore {
@@ -28,7 +25,7 @@ impl Semaphore {
 
   /// Inicializa un semáforo en el valor pasado por parámetro.
   pub fn init(&self, init_value: i32) -> io::Result<()> {
-    let mut buf = sembuf {
+    let buf = sembuf {
       sem_num: 0,
       sem_op: init_value as libc::c_short,
       sem_flg: 0

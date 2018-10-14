@@ -4,7 +4,6 @@ use ncurses;
 use std::char::from_u32;
 use std::ops::Drop;
 use std::cell::RefCell;
-use std::rc::Rc;
 
 #[derive(Copy, Clone, Debug)]
 pub enum PromptSelection {
@@ -15,14 +14,12 @@ pub enum PromptSelection {
 
 pub struct Tui {
   counters: RefCell<HashMap<String, i32>>,
-  closed: bool
 }
 
 impl Tui {
   pub fn new(counters: RefCell<HashMap<String, i32>>) -> Tui {
     ncurses::initscr();
-    let closed = false;
-    Tui { counters, closed }
+    Tui { counters }
   }
 
   pub fn prompt(&self) -> Option<PromptSelection> {
@@ -63,19 +60,10 @@ impl Tui {
     ncurses::printw("El valor ingresado es incorrecto");
     ncurses::refresh();
   }
-
-  pub fn close(&mut self) {
-    if !self.closed {
-      ncurses::endwin();
-    }
-    self.closed = true;
-  }
 }
 
 impl Drop for Tui {
   fn drop(&mut self) {
-    if !self.closed {
-      ncurses::endwin();
-    }
+    ncurses::endwin();
   }
 }
