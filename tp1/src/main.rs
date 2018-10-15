@@ -47,6 +47,7 @@ fn main() -> io::Result<()> {
 
 fn run(quit_handler: Rc<RefCell<QuitHandler>>,
     options: HashMap<String, i32>) -> io::Result<()> {
+  let mut selection_vector = options_as_vector(&options);
   let options_cell = RefCell::new(options);
   // Inicio la interfaz de texto
   let tui = Tui::new(options_cell);
@@ -57,7 +58,10 @@ fn run(quit_handler: Rc<RefCell<QuitHandler>>,
   // También provee a los hijos de acceso a los IPCs creados por el padre.
   let mut runner = live_object::LiveObjectRunner::new(quit_handler.clone())?;
   while !quit {
-    let selection = tui.prompt();
+    let mut selection = selection_vector.pop();
+    if selection.is_none() {
+      selection = tui.prompt();
+    }
     match selection {
       Some(PromptSelection::Exit) => quit = true,
       // Si tengo una opción válida
@@ -96,4 +100,19 @@ fn run(quit_handler: Rc<RefCell<QuitHandler>>,
     log!("Terminando la aplicación", &LogSeverity::INFO);
     runner.exit()
   }
+}
+
+// Convierto el mapa a un vector de selecciones
+fn options_as_vector(map: &HashMap<String, i32>) -> Vec<PromptSelection> {
+  let mut selections = Vec::new();
+  for _ in 0..*map.get("ships").unwrap() {
+    selections.push(PromptSelection::Ship);
+  }
+  for _ in 0..*map.get("passengers").unwrap() {
+    selections.push(PromptSelection::Passenger);
+  }
+  for _ in 0..*map.get("travellers").unwrap() {
+    selections.push(PromptSelection::Passenger);
+  }
+  selections
 }
