@@ -5,6 +5,7 @@ use std::char::from_u32;
 use std::ops::Drop;
 use std::cell::RefCell;
 
+/// Opciones disponibles en la interfaz de usuario
 #[derive(Copy, Clone, Debug)]
 pub enum PromptSelection {
   Ship,
@@ -12,16 +13,19 @@ pub enum PromptSelection {
   Exit
 }
 
+/// Interfaz de texto de usuario, hecha con ncurses
 pub struct Tui {
   counters: RefCell<HashMap<String, i32>>,
 }
 
 impl Tui {
+  /// Inicializa la pantalla de ncurses y asigna el mapa de contadores a la interfaz
   pub fn new(counters: RefCell<HashMap<String, i32>>) -> Tui {
     ncurses::initscr();
     Tui { counters }
   }
 
+  /// Escribe el menú del usuario y pregunta por una opción
   pub fn prompt(&self) -> Option<PromptSelection> {
     ncurses::mvprintw(1, 0, "Ingrese un tipo de proceso a lanzar");
     ncurses::mvprintw(2, 0, "1) Barco");
@@ -42,6 +46,7 @@ impl Tui {
     }
   }
 
+  /// Informa qué tipo de proceso fue lanzado
   pub fn print_launch(&self, selection: PromptSelection, pid: i32) {
     ncurses::mv(8, 0);
     ncurses::clrtoeol();
@@ -54,6 +59,7 @@ impl Tui {
     ncurses::refresh();
   }
 
+  /// Informa entrada inválida
   pub fn print_invalid_input(&self) {
     ncurses::mv(8, 0);
     ncurses::clrtoeol();
@@ -63,6 +69,7 @@ impl Tui {
 }
 
 impl Drop for Tui {
+  /// Libera ncurses
   fn drop(&mut self) {
     ncurses::endwin();
   }

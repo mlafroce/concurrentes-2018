@@ -32,6 +32,7 @@ pub struct LiveObjectRunner {
 }
 
 impl LiveObjectRunner {
+  /// 
   pub fn new(quit_handler: Rc<RefCell<QuitHandler>>) -> io::Result<(LiveObjectRunner)> {
     
     // Lock principal
@@ -41,13 +42,11 @@ impl LiveObjectRunner {
     let mut lock_info = main_lock.get_info();
     let lake_config = Config::new(MAIN_CONFIG_FILENAME, &lock_info)?;
 
+    let lake = Lake::new(&lake_config);
     // Si soy el primer proceso, creo los IPCS
-    let lake = if lock_info.is_counter_zero() {
-      Lake::init(&lake_config)
-    } else {
-      // Si no lo, los cargo.
-      Lake::load(&lake_config)
-    };
+    if lock_info.is_counter_zero() {
+      lake.create_ipcs()?; 
+    }
     // Marco que hay un proceso más usando los IPCs
     lock_info.counter_inc();
     lock_info.save(MAIN_LOCK_FILENAME)?;
@@ -55,7 +54,7 @@ impl LiveObjectRunner {
     Ok(LiveObjectRunner{quit_handler, lake: RefCell::new(lake)})
   }
 
-  // Main loop
+  /// Main loop
   pub fn run<T: LiveObject>(&self, mut object: T) -> io::Result<()> {
     // Start object
     while !self.quit_handler.borrow().has_graceful_quit() {

@@ -8,19 +8,23 @@ use std::io::{BufRead, BufReader};
 use std::io::{Error, ErrorKind};
 use std::time::SystemTime;
 
+/// Parser de configuración de la aplicación
+/// Levanta un archivo de configuración, lo parsea y toma su fecha de modificación
 pub struct Config {
   pub config_map: HashMap<String, String>,
   pub timestamp: u64
 }
 
+
 impl Config {
+  /// Intenta abrir el archivo de configuración, comparando la fecha del archivo
+  /// config contra la del lock. De esta forma, si el archivo de configuración fue
+  /// editado posterior a la creación de una instancia del lago, se lanza un error.
   pub fn new(path: &str, lock_info: &MainLockInfo) -> Result<Config, Error> {
     let metadata = metadata(path)?;
     let metadata_modified = metadata.modified()?;
-    println!("{:?} ---> Config meta: {:?}", path, metadata);
     let config_timestamp = metadata_modified.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
 
-    println!("{:?} vs {:?}", config_timestamp, lock_info.timestamp);
     if config_timestamp >= lock_info.timestamp {
       return Err(Error::new(ErrorKind::InvalidData, "Invalid timestamp!"));
     }
@@ -28,6 +32,8 @@ impl Config {
     Ok(Config {config_map, timestamp: config_timestamp})
   }
 
+  /// Lee la configuración almacenada en formato `clave=valor`
+  /// Lanza un error en caso de que el archivo no exista
   fn read_config(path: &str) -> io::Result<HashMap<String, String>> {
     let file = File::open(path)?;
     let buf = BufReader::new(file);
@@ -40,6 +46,7 @@ impl Config {
     Ok(config_map)
   }
 
+  /// Obtiene uno de los valores parseados previamente (o None si no existe)
   pub fn get(&self, key: &str) -> Option<&String> {
     self.config_map.get(key)
   }

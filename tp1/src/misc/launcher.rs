@@ -4,6 +4,12 @@ use live_objects::{live_object, ship::Ship, passenger::Passenger};
 
 use misc::tui::PromptSelection;
 
+/// "Lanzador" de objetos. Ejecuta una de las entidades del lago
+/// 
+/// Las entidades que puede lanzar son:
+/// * Barco
+/// * Pasajero
+/// * Inspector
 pub struct Launcher;
 
 impl Launcher {

@@ -107,10 +107,8 @@ impl Passenger {
     let msg = format!("Tomando el barco en el puerto {}, destino {}",
       self.current_port, self.destination);
     log!(msg.as_str(), &LogSeverity::INFO);
-    // Mover esto al TDA fifo?
-    let lock_pipe_path = format!("port-{:?}-board.fifo.lock", self.current_port);
     // En cierta forma el lock es un molinete :D
-    let mut lock = FileLock::create(lock_pipe_path)?;
+    let mut lock = lake.borrow_mut().get_boarding_lock(self.current_port)?;
     lock.lock_exclusive()?;
     log!("Obteniendo fifo", &LogSeverity::DEBUG);
     let mut writer = lake.borrow_mut().
