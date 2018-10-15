@@ -12,9 +12,9 @@ fn main() -> io::Result<()> {
   let key = Key::ftok(KEY_FILE, 0)?;
   println!("Key obtained: {}", key.key);
   let flags = ipc::IPC_CREAT | ipc::IPC_EXCL | 0o660;
-  let mut shmem = Shmem::<i32>::get(&key, flags)
-    .expect("Error creating shmem");
-  shmem.attach(0)?;
+  let mut shared_ints = Shmem::<i32>::get(&key, 5, flags)
+    .expect("Error creating shared_ints");
+  shared_ints.attach(0)?;
 
   // Parent reads shared memory after child writes
   let result = process::fork()?;
@@ -23,15 +23,25 @@ fn main() -> io::Result<()> {
       println!("Parent process of {:?}", child);
       process::waitpid(child).expect(format!("Error while waiting {}", child).as_str());
       println!("Child joined");
-      println!("Parent read {}", shmem.get_data());
-      shmem.detach()?;
-      shmem.destroy()?;
+      println!("Parent read {}", shared_ints.get_item());
+      println!("Items: {:?}", shared_ints.get_array());
+      shared_ints.detach()?;
+      shared_ints.destroy()?;
     },
     process::ForkResult::Child => {
       println!("Child process");
-      shmem.set_data(42);
-      println!("Child wrote {}", shmem.get_data());
-      shmem.detach()?;
+      shared_ints.set_item(42);
+      { // Van a otro scope para reducir el scope del borrowing de los miembros
+        let mut array_cell = shared_ints.get_array_mut();
+        let mut shared_array = array_cell.borrow_mut();
+        shared_array[1] = 10;
+        shared_array[2] = 20;
+        shared_array[3] = 30;
+        shared_array[4] = 40;
+        println!("Child wrote {}", shared_ints.get_item());
+        println!("Item array: {:?}", shared_ints.get_array());
+      }
+      shared_ints.detach()?;
     }
   }
   Ok(())

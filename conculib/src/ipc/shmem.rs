@@ -1,3 +1,4 @@
+use libc::c_void;
 use libc::shmget as c_shmget;
 use libc::shmctl as c_shmctl;
 use libc::shmat as c_shmat;
@@ -8,26 +9,28 @@ use ipc::key::Key;
 use std::io::Error;
 use std::mem;
 use std::ptr;
-use libc::c_void;
+use std::slice::{from_raw_parts, from_raw_parts_mut};
+use std::cell::RefCell;
 
 /// Wrapper para trabajar con memoria compartida
 ///
 /// Posee un id del IPC y un puntero hacia la memoria compartida. La estructura es un template para
-/// reservar un buffer del tamaño de una unidad de `<T>`
+/// reservar un buffer del tamaño de `num` unidades de `<T>`
 pub struct Shmem<T> {
   id: i32,
+  num: usize,
   data: *mut T
 }
 
 impl <T> Shmem<T> {
   /// Obtiene un id de memoria compartida correspondiente a la clave `key`
-  pub fn get(key: &Key, flags: i32) -> Result<Shmem<T>, Error> {
+  pub fn get(key: &Key, num: usize, flags: i32) -> Result<Shmem<T>, Error> {
     let id;
     unsafe {
-      id = c_shmget(key.key, mem::size_of::<T>(), flags);
+      id = c_shmget(key.key, mem::size_of::<T>() * num, flags);
     }
     if id != -1 {
-      Ok(Shmem{id, data: ptr::null_mut()})
+      Ok(Shmem{id, data: ptr::null_mut(), num})
     } else {
       Err(Error::last_os_error())
     }
@@ -77,16 +80,28 @@ impl <T> Shmem<T> {
   }
 
   /// Obtiene una copia del dato al que apunta la memoria compartida
-  pub fn get_data(&self) -> &T {
+  pub fn get_item(&self) -> &T {
     unsafe {
       &*self.data
     }
   }
 
   /// Almacena el dato en memoria compartida
-  pub fn set_data(&mut self, data: T) {
+  pub fn set_item(&mut self, data: T) {
     unsafe {
       *self.data = data;
     }
+  }
+
+  /// Obtiene los datos de la memoria compartida en forma de array constante
+  pub fn get_array(&self) -> RefCell<&[T]> {
+    let mut slice = unsafe { from_raw_parts(self.data, self.num) };
+    RefCell::new(slice)
+  }
+
+  /// Obtiene los datos de la memoria compartida en forma de array mutable
+  pub fn get_array_mut(&self) -> RefCell<&mut [T]> {
+    let mut slice = unsafe { from_raw_parts_mut(self.data, self.num) };
+    RefCell::new(slice)
   }
 }
