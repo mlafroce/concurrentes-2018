@@ -88,16 +88,16 @@ impl Passenger {
   }
 
   fn at_destination (&mut self, lake: &RefCell<Lake>) -> io::Result<()>{
-    log!(format!("Avisandole al barco si me bajo o no").as_str(), &LogSeverity::DEBUG);
+    log!("Avisandole al barco si me bajo o no", &LogSeverity::DEBUG);
     let mut writer = lake.borrow_mut().
       get_confirmation_pipe_writer(self.current_port)?;
     if self.current_port == self.destination {
-      log!(format!("Llegó a destino").as_str(), &LogSeverity::DEBUG);
-      write!(writer, "{}\n", self.id)?;
+      log!("Llegó a destino", &LogSeverity::DEBUG);
+      writeln!(writer, "{}", self.id)?;
       self.status = Status::Arrive
     } else {
-      log!(format!("Sigue esperando").as_str(), &LogSeverity::DEBUG);
-      write!(writer, "0\n")?;
+      log!("Sigue esperando", &LogSeverity::DEBUG);
+      writeln!(writer, "0")?;
       self.status = Status::WaitDestination;
     }
     Ok(())
@@ -114,7 +114,7 @@ impl Passenger {
     let mut writer = lake.borrow_mut().
       get_board_pipe_writer(self.current_port)?;
     log!("Obtenido fifo", &LogSeverity::DEBUG);
-    write!(writer, "{}\n", self.id)?;
+    writeln!(writer, "{}", self.id)?;
     let writer_msg = format!("Datos enviados: {}", self.id.to_string());
     log!(writer_msg.as_str(), &LogSeverity::DEBUG);
     lock.unlock()?;
@@ -125,7 +125,7 @@ impl Passenger {
   fn read_current_port(&mut self, reader: named_pipe::NamedPipeReader) -> io::Result<(u32)> {
     let mut buf_line = String::new();
     let mut buf_reader = BufReader::new(reader);
-    log!(format!("Leyendo puerto con buffer").as_str(), &LogSeverity::DEBUG);
+    log!("Leyendo puerto con buffer", &LogSeverity::DEBUG);
     let mut read_port = false;
     while !read_port {
       buf_reader.read_line(&mut buf_line)?;

@@ -109,7 +109,7 @@ impl Ship {
       log!(format!("Abriendo FIFO {} para escribir puerto", pipe_path).as_str(), &LogSeverity::DEBUG);
       let mut writer = named_pipe::NamedPipeWriter::open(pipe_path.as_str())?;
       log!(format!("Pipe abierto {}", passenger).as_str(), &LogSeverity::DEBUG);
-      write!(writer, "{}\n", self.destination)?;
+      writeln!(writer, "{}", self.destination)?;
       log!(format!("Enviado puerto {}", self.destination).as_str(), &LogSeverity::DEBUG);
       if let Some(reply) = self.read_passenger_reply(lake)? {
         log!(format!("Descargando pasajero {:?}", reply).as_str(), &LogSeverity::INFO);
@@ -119,7 +119,7 @@ impl Ship {
     }
     for discarded in left_passengers {
       log!(format!("Desanotando pasajero {:?}", discarded).as_str(), &LogSeverity::DEBUG);
-      &self.passenger_vec.iter()
+      self.passenger_vec.iter()
         .position(|&n| n == discarded)
         .map(|e| self.passenger_vec.remove(e));
       self.current_capacity += 1;

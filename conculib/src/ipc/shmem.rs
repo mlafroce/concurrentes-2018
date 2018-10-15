@@ -73,35 +73,35 @@ impl <T> Shmem<T> {
   }
 
   /// Elimina el IPC de memoria compartida
-  pub fn destroy(self) -> Result<(), Error> {
+  pub fn destroy(&self) -> Result<(), Error> {
     unsafe {
       self.control(IPC_RMID, ptr::null_mut())
     }
   }
 
   /// Obtiene una copia del dato al que apunta la memoria compartida
-  pub fn get_item(&self) -> &T {
+  pub fn get_item(&self, idx: isize) -> &T {
     unsafe {
-      &*self.data
+      &*self.data.offset(idx)
     }
   }
 
   /// Almacena el dato en memoria compartida
-  pub fn set_item(&mut self, data: T) {
+  pub fn set_item(&mut self, idx: isize, data: T) {
     unsafe {
-      *self.data = data;
+      *self.data.offset(idx) = data;
     }
   }
 
   /// Obtiene los datos de la memoria compartida en forma de array constante
   pub fn get_array(&self) -> RefCell<&[T]> {
-    let mut slice = unsafe { from_raw_parts(self.data, self.num) };
+    let slice = unsafe { from_raw_parts(self.data, self.num) };
     RefCell::new(slice)
   }
 
   /// Obtiene los datos de la memoria compartida en forma de array mutable
   pub fn get_array_mut(&self) -> RefCell<&mut [T]> {
-    let mut slice = unsafe { from_raw_parts_mut(self.data, self.num) };
+    let slice = unsafe { from_raw_parts_mut(self.data, self.num) };
     RefCell::new(slice)
   }
 }

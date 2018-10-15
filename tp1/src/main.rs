@@ -58,8 +58,10 @@ fn run(quit_handler: Rc<RefCell<QuitHandler>>,
   // También provee a los hijos de acceso a los IPCs creados por el padre.
   let mut runner = live_object::LiveObjectRunner::new(quit_handler.clone())?;
   while !quit {
+    // Levanto las opciones pasadas por argumento
     let mut selection = selection_vector.pop();
     if selection.is_none() {
+      // Si ya levanté todas, le permito al usuario
       selection = tui.prompt();
     }
     match selection {

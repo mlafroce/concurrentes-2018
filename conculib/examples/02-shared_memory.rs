@@ -23,22 +23,22 @@ fn main() -> io::Result<()> {
       println!("Parent process of {:?}", child);
       process::waitpid(child).expect(format!("Error while waiting {}", child).as_str());
       println!("Child joined");
-      println!("Parent read {}", shared_ints.get_item());
+      println!("Parent read {}", shared_ints.get_item(4));
       println!("Items: {:?}", shared_ints.get_array());
       shared_ints.detach()?;
       shared_ints.destroy()?;
     },
     process::ForkResult::Child => {
       println!("Child process");
-      shared_ints.set_item(42);
+      shared_ints.set_item(4, 42);
       { // Van a otro scope para reducir el scope del borrowing de los miembros
         let mut array_cell = shared_ints.get_array_mut();
         let mut shared_array = array_cell.borrow_mut();
+        shared_array[0] = 0;
         shared_array[1] = 10;
         shared_array[2] = 20;
         shared_array[3] = 30;
-        shared_array[4] = 40;
-        println!("Child wrote {}", shared_ints.get_item());
+        println!("Child wrote {}", shared_ints.get_item(4));
         println!("Item array: {:?}", shared_ints.get_array());
       }
       shared_ints.detach()?;
