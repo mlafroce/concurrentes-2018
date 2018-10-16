@@ -4,7 +4,7 @@ use std::mem;
 use std::ptr;
 
 use libc::{sigaction, sigaddset, sigemptyset, sighandler_t};
-use libc::{c_void, alarm as c_alarm};
+use libc::{c_void, alarm as c_alarm, kill as c_kill};
 
 thread_local! {
   /// Vector global con handlers de señales
@@ -19,6 +19,12 @@ thread_local! {
 pub fn alarm(secs: u32) {
   unsafe {
     c_alarm(secs);
+  }
+}
+
+pub fn signal(pid: i32, signal: i32) {
+  unsafe {
+    c_kill(pid, signal);
   }
 }
 

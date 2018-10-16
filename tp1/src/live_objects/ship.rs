@@ -22,24 +22,43 @@ use std::rc::Rc;
 use std::time::Duration;
 use std::thread::sleep;
 
+/// Barco de pasajeros
+/// Posee los siguientes atributos
+/// * Puerto de destino
+/// * Vector de ids de los pasajeros a bordo
+/// * Manejador de la señal sigalrm para no bloquearse eternamente al
+/// levantar un pasajero
+/// * Estado del barco
 pub struct Ship {
+  /// Una cantidad máxima de pasajeros que puede levantar
   current_capacity: u32,
   destination: u32,
   passenger_vec: Vec<u32>,
   sigalarm_handler: Rc<RefCell<GenericHandler>>,
+  sigusr_handler: Rc<RefCell<GenericHandler>>,
   status: Status
 }
 
+/// Estados del barco
 #[derive(Debug)]
 enum Status {
+  /// Viajando hacia un puerto
   Travel,
+  /// Dejando pasajeros
   LeavePassengers,
+  /// Levantando pasajeros
   PickPassengers,
+  /// Abandonando el puerto
   Disembark
 }
 
 impl LiveObject for Ship {
   fn tick(&mut self, lake: &RefCell<Lake>) -> Result<(), Error> {
+    if self.sigusr_handler.borrow().get_handled() {
+      self.status = Status::PickPassengers;
+      self.inspect_passengers(lake)?;
+      self.sigusr_handler.borrow_mut().reset();
+    }
     match self.status {
       Status::Travel => self.travel(lake)?,
       Status::LeavePassengers => self.leave_passenger(lake)?,
@@ -61,14 +80,16 @@ impl Ship {
   pub fn new(current_capacity: u32, destination: u32) -> Ship {
     // Acá me recontra abuso del supuesto de que hay un sólo barco por proceso
     let sigalarm_handler = Rc::new(RefCell::new(GenericHandler::new()));
+    let sigusr_handler = Rc::new(RefCell::new(GenericHandler::new()));
     SignalHandlerDispatcher::register(libc::SIGALRM, sigalarm_handler.clone());
-    Ship {current_capacity, destination, sigalarm_handler,
+    SignalHandlerDispatcher::register(libc::SIGUSR1, sigusr_handler.clone());
+    Ship {current_capacity, destination, sigalarm_handler, sigusr_handler,
       status: Status::Travel, passenger_vec: Vec::new()}
   }
 
   fn travel(&mut self, lake: &RefCell<Lake>) -> io::Result<()> {
     let mut rng = rand::thread_rng();
-    let msecs = rng.gen::<u32>() % 1000;
+    let msecs = rng.gen::<u32>() % 5000;
     let travel_time = Duration::from_millis(u64::from(msecs));
     let msg = format!("Viajando {} msecs al puerto {}",
       msecs, self.destination);
@@ -82,7 +103,7 @@ impl Ship {
 
   fn disembark(&mut self, lake: &RefCell<Lake>) -> io::Result<()> {
     let mut rng = rand::thread_rng();
-    let msecs = (rng.gen::<u32>() % 1000) + 500;
+    let msecs = (rng.gen::<u32>() % 5000) + 500;
     let disembark_time = Duration::from_millis(u64::from(msecs));
     let msg = format!("Desembarcando en {} msecs, {} lugares libres",
       msecs, self.current_capacity);
@@ -95,39 +116,13 @@ impl Ship {
     Ok(())
   }
 
-  fn leave_passenger(&mut self, lake: &RefCell<Lake>) -> io::Result<()>{
-    let mut left_passengers = Vec::new();
-    for passenger in &self.passenger_vec {
-      log!(format!("Notificando pasajero {}", passenger).as_str(), &LogSeverity::DEBUG);
-      let pipe_path = format!("passenger-{:?}.fifo", passenger);
-      let lock_pipe_path = format!("passenger-{:?}.fifo.lock", passenger);
-      FileLock::create(lock_pipe_path.clone()).unwrap();
-      let key = Key::ftok(&lock_pipe_path, 0).unwrap();
-      log!(format!("Obteniendo semaforo {}", passenger).as_str(), &LogSeverity::DEBUG);
-      let sem = Semaphore::get(&key, 0).unwrap();
-      sem.signal()?;
-      log!(format!("Abriendo FIFO {} para escribir puerto", pipe_path).as_str(), &LogSeverity::DEBUG);
-      let mut writer = named_pipe::NamedPipeWriter::open(pipe_path.as_str())?;
-      log!(format!("Pipe abierto {}", passenger).as_str(), &LogSeverity::DEBUG);
-      writeln!(writer, "{}", self.destination)?;
-      log!(format!("Enviado puerto {}", self.destination).as_str(), &LogSeverity::DEBUG);
-      if let Some(reply) = self.read_passenger_reply(lake)? {
-        log!(format!("Descargando pasajero {:?}", reply).as_str(), &LogSeverity::INFO);
-        left_passengers.push(reply);
-      }
-      log!(format!("Terminé de notificar pasajero {}", passenger).as_str(), &LogSeverity::DEBUG);
-    }
-    for discarded in left_passengers {
-      log!(format!("Desanotando pasajero {:?}", discarded).as_str(), &LogSeverity::DEBUG);
-      self.passenger_vec.iter()
-        .position(|&n| n == discarded)
-        .map(|e| self.passenger_vec.remove(e));
-      self.current_capacity += 1;
-    }
-    self.status = Status::PickPassengers;
-    Ok(())
-  }
-
+  /// Levanta los pasajeros esperando en un puerto
+  /// Abre un FIFO en forma de lectura en el cuál los pasajeros escriben,
+  /// de a uno, su PID. Utiliza una alarma al abrir el FIFO, de forma de que
+  /// si nadie abrió la otra punta del FIFO, pasados N segundos, se desbloquee
+  /// lanzando SIGALRM
+  /// Si se lanza SIGALRM el manejador de esta señal se activa y el próximo
+  /// estado pasa a ser Disembark
   fn pick_passenger(&mut self, lake: &RefCell<Lake>) -> Option<u32> {
     log!("Obteniendo fifo", &LogSeverity::DEBUG);
     alarm(10);
@@ -156,6 +151,55 @@ impl Ship {
       self.current_capacity);
     log!(msg.as_str(), &LogSeverity::DEBUG);
     None
+  }
+
+  fn leave_passenger(&mut self, lake: &RefCell<Lake>) -> io::Result<()>{
+    let port = self.destination as i32;
+    self.notify_passengers(lake, port)
+  }
+
+  fn inspect_passengers(&mut self, lake: &RefCell<Lake>) -> io::Result<()> {
+    self.notify_passengers(lake, -1)
+  }
+
+  /// Notifica a todos los pasajeros que llegó a un puerto
+  /// port: puerto al que arriba el barco,
+  /// -1 para notificar una inspección,
+  /// -2 para forzar descenso
+  fn notify_passengers(&mut self, lake: &RefCell<Lake>, port: i32) -> io::Result<()>{
+    let mut left_passengers = Vec::new();
+    for passenger in &self.passenger_vec {
+      log!(format!("Notificando pasajero {}", passenger).as_str(), &LogSeverity::DEBUG);
+      let pipe_path = format!("passenger-{:?}.fifo", passenger);
+      let lock_pipe_path = format!("passenger-{:?}.fifo.lock", passenger);
+      FileLock::create(lock_pipe_path.clone()).unwrap();
+      let key = Key::ftok(&lock_pipe_path, 0).unwrap();
+      log!(format!("Obteniendo semaforo {}", passenger).as_str(), &LogSeverity::DEBUG);
+      let sem = Semaphore::get(&key, 0).unwrap();
+      // Habilita a un pasajero a que responda
+      sem.signal()?;
+      log!(format!("Abriendo FIFO {} para escribir puerto", pipe_path).as_str(), &LogSeverity::DEBUG);
+      let mut writer = named_pipe::NamedPipeWriter::open(pipe_path.as_str())?;
+      // Envía al pasajero el puerto actual
+      writeln!(writer, "{}", port)?;
+      log!(format!("Enviado puerto {}", self.destination).as_str(), &LogSeverity::DEBUG);
+      // Si el pasajero responde con su pid, lo descargo
+      if let Some(reply) = self.read_passenger_reply(lake)? {
+        log!(format!("Descargando pasajero {:?}", reply).as_str(), &LogSeverity::INFO);
+        left_passengers.push(reply);
+      }
+      log!(format!("Terminé de notificar pasajero {}", passenger).as_str(), &LogSeverity::DEBUG);
+    }
+    // Elimino los pasajeros que se bajaron del barco
+    for discarded in left_passengers {
+      log!(format!("Desanotando pasajero {:?}", discarded).as_str(), &LogSeverity::DEBUG);
+      self.passenger_vec.iter()
+        .position(|&n| n == discarded)
+        .map(|e| self.passenger_vec.remove(e));
+      self.current_capacity += 1;
+    }
+    self.status = Status::PickPassengers;
+    Ok(())
   }
 
   fn read_passenger_reply(&self, lake: &RefCell<Lake>) -> io::Result<Option<u32>>{

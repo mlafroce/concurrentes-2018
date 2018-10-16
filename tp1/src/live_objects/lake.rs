@@ -185,6 +185,17 @@ impl Lake {
     let boarding_lock_path = self.boarding_locks[port as usize].clone();
     FileLock::create(boarding_lock_path)
   }
+
+  pub fn get_ship_at(&mut self, port: u32) -> Option<u32> {
+    self.status_lock.lock_exclusive().unwrap();
+    let ship_pid = *self.status_mem.get_item(port as isize);
+    self.status_lock.unlock();
+    if ship_pid == 0 {
+      Some(ship_pid)
+    } else {
+      None
+    }
+  }
 }
 
 /// Rust exige que tenga la memoria compartida creada. Como puede haberlo

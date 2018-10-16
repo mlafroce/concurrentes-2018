@@ -6,6 +6,7 @@ use concurrentes::ipc::Key;
 use concurrentes::ipc::named_pipe;
 use concurrentes::ipc::flock::FileLock;
 use concurrentes::ipc::semaphore::Semaphore;
+use concurrentes::log::{GLOBAL_LOG, LogSeverity};
 
 use live_objects::lake::Lake;
 use live_objects::live_object::LiveObject;
@@ -13,13 +14,11 @@ use live_objects::live_object::LiveObject;
 use std::cell::RefCell;
 use std::io;
 use std::io::{Write, BufRead, BufReader};
+use std::ops::Drop;
 use std::process;
 use std::time::Duration;
 use std::thread::sleep;
 
-use std::ops::Drop;
-
-use concurrentes::log::{GLOBAL_LOG, LogSeverity};
 
 pub struct Passenger {
   destination: u32,
@@ -126,17 +125,9 @@ impl Passenger {
     let mut buf_line = String::new();
     let mut buf_reader = BufReader::new(reader);
     log!("Leyendo puerto con buffer", &LogSeverity::DEBUG);
-    let mut read_port = false;
-    while !read_port {
-      buf_reader.read_line(&mut buf_line)?;
-      buf_line.pop();
-      log!(format!("Leido {:?}.", buf_line).as_str(), &LogSeverity::DEBUG);
-      read_port = !buf_line.is_empty();
-      if !read_port {
-        let travel_time = Duration::from_millis(1000);
-        sleep(travel_time);
-      }
-    }
+    buf_reader.read_line(&mut buf_line)?;
+    buf_line.pop();
+    log!(format!("Leido {:?}.", buf_line).as_str(), &LogSeverity::DEBUG);
     let port_id = buf_line.parse::<u32>().expect("Error al leer el puerto actual");
     let msg = format!("Llega al destino {:?}",
       port_id);
