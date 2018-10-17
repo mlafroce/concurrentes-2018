@@ -10,6 +10,8 @@ use std::cell::RefCell;
 pub enum PromptSelection {
   Ship,
   Passenger,
+  Inspector,
+  Navy,
   Exit
 }
 
@@ -30,15 +32,19 @@ impl Tui {
     ncurses::mvprintw(1, 0, "Ingrese un tipo de proceso a lanzar");
     ncurses::mvprintw(2, 0, "1) Barco");
     ncurses::mvprintw(3, 0, "2) Pasajero");
-    ncurses::mvprintw(4, 0, "3) Salir");
-    ncurses::mv(6, 0);
+    ncurses::mvprintw(4, 0, "3) Inspector");
+    ncurses::mvprintw(5, 0, "4) Prefectura");
+    ncurses::mvprintw(6, 0, "5) Salir");
+    ncurses::mv(8, 0);
     ncurses::refresh();
     let input_raw = ncurses::getch();
     if let Some(input) = from_u32(input_raw as u32) {
       match input {
         '1' => Some(PromptSelection::Ship),
         '2' => Some(PromptSelection::Passenger),
-        '3' => Some(PromptSelection::Exit),
+        '3' => Some(PromptSelection::Inspector),
+        '4' => Some(PromptSelection::Navy),
+        '5' => Some(PromptSelection::Exit),
         _ => None
       }
     } else {
@@ -53,6 +59,8 @@ impl Tui {
     let msg = match selection {
       PromptSelection::Passenger => format!("Lanzado pasajero {}", pid),
       PromptSelection::Ship => format!("Lanzado barco {}", pid),
+      PromptSelection::Inspector => format!("Lanzado inspector {}", pid),
+      PromptSelection::Navy => format!("Lanzado prefectura {}", pid),
       PromptSelection::Exit => unreachable!()
     };
     ncurses::printw(msg.as_str());

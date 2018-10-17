@@ -100,7 +100,7 @@ impl <T> Shmem<T> {
   }
 
   /// Obtiene los datos de la memoria compartida en forma de array mutable
-  pub fn get_array_mut(&self) -> RefCell<&mut [T]> {
+  pub fn get_array_mut(&mut self) -> RefCell<&mut [T]> {
     let slice = unsafe { from_raw_parts_mut(self.data, self.num) };
     RefCell::new(slice)
   }

@@ -42,7 +42,7 @@ impl LiveObjectRunner {
     let mut lock_info = main_lock.get_info();
     let lake_config = Config::new(MAIN_CONFIG_FILENAME, &lock_info)?;
 
-    let lake = Lake::new(&lake_config);
+    let mut lake = Lake::new(&lake_config);
     // Si soy el primer proceso, creo los IPCS
     if lock_info.is_counter_zero() {
       lake.create_ipcs()?; 
@@ -84,7 +84,7 @@ impl LiveObjectRunner {
   }
 
   /// Obtiene un número de puerto aleatorio
-  pub fn get_random_port(&self) -> u32 {
+  pub fn get_random_port(&self) -> i32 {
     self.lake.borrow().get_random_port()
   }
 }

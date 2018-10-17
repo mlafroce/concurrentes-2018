@@ -1,6 +1,6 @@
 use std::io;
 
-use live_objects::{live_object, ship::Ship, passenger::Passenger};
+use live_objects::{live_object, ship::Ship, passenger::Passenger, inspector::Inspector};
 
 use misc::tui::PromptSelection;
 
@@ -18,7 +18,7 @@ impl Launcher {
     match selection {
       PromptSelection::Ship => {
         let current_port = runner.get_random_port();
-        let ship = Ship::new(1, current_port);
+        let ship = Ship::new(2, current_port);
         runner.run(ship)
       },
       PromptSelection::Passenger => {
@@ -26,6 +26,16 @@ impl Launcher {
         let current_port = runner.get_random_port();
         let passenger = Passenger::new(current_port, destination);
         runner.run(passenger)
+      },
+      PromptSelection::Inspector => {
+        let current_port = runner.get_random_port();
+        let inspector = Inspector::new(current_port, true);
+        runner.run(inspector)
+      },
+      PromptSelection::Navy => {
+        let current_port = runner.get_random_port();
+        let inspector = Inspector::new(current_port, false);
+        runner.run(inspector)
       },
       PromptSelection::Exit => unreachable!()
     }

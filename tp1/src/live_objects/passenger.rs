@@ -20,20 +20,34 @@ use std::time::Duration;
 use std::thread::sleep;
 
 
+/// Entidad pasajero
+///
+/// Posee los siguientes destinos:
+/// * Un destino, que se elige al azar
+/// * Un puerto actual, donde se va a tomar el barco
+/// * Un id (el pid)
+/// * Estado del pasajero
 pub struct Passenger {
-  destination: u32,
-  current_port: u32,
+  destination: i32,
+  current_port: i32,
   id: u32,
   status: Status,
-  sem: Semaphore
+  sem: Semaphore,
+  inspection: bool,
+  navy: bool
 }
 
 #[derive(Debug)]
 enum Status {
+  /// Esperando a que un barco llegue al puerto para levantarlo
   WaitShip,
+  /// Dentro del barco, esperando a que el barco llegue a algún puerto
   WaitDestination,
+  /// Esperando a que el barco le diga a qué puerto llegaron
   AskDestination,
+  /// Esperando a que el barco escuche si se baja o no
   AtDestination,
+  /// "Paseando" por la ciudad
   Arrive
 }
 
@@ -51,7 +65,7 @@ impl LiveObject for Passenger {
 }
 
 impl Passenger {
-  pub fn new(current_port: u32, destination: u32) -> Passenger {
+  pub fn new(current_port: i32, destination: i32) -> Passenger {
     let id = process::id();
     let flags = ipc::IPC_CREAT | ipc::IPC_EXCL | 0o660;
     let pipe_path = format!("passenger-{:?}.fifo", id);
@@ -63,7 +77,7 @@ impl Passenger {
     let status = Status::WaitShip;
     let msg = format!("Pasajero {}: desde el puerto {} a {}", id, current_port, destination);
         log!(msg.as_str(), &LogSeverity::INFO);
-    Passenger {current_port, destination, id, status, sem}
+    Passenger {current_port, destination, id, status, sem, inspection: false, navy: false}
   }
 
   fn wait_for_destination(&mut self) -> io::Result<()>{
@@ -76,20 +90,61 @@ impl Passenger {
     Ok(())
   }
   
+  /// Abre un fifo para saber en qué puerto está el barco
+  /// Casos especiales: -1 es una inspeccion, -2 es prefectura
   fn ask_destination(&mut self) -> io::Result<()>{
     let pipe_path = format!("passenger-{:?}.fifo", self.id);
     log!(format!("Abriendo FIFO {} para saber a que puerto llegué", pipe_path).as_str(), &LogSeverity::DEBUG);
     let reader = named_pipe::NamedPipeReader::open(pipe_path.as_str())?;
     log!("FIFO Abierto", &LogSeverity::DEBUG);
-    self.current_port = self.read_current_port(reader)?;
+    let read_port = self.read_current_port(reader)?;
+    if read_port == -1 {
+      self.inspection = true;
+    } else if read_port == -2 {
+      self.navy = true;
+    } else {
+      self.current_port = read_port;
+    }
     self.status = Status::AtDestination;
     Ok(())
   }
 
+  /// Acción ejecutada al llegar a un destino. El pasajero abre un FIFO
+  /// y le notifica al barco si va a descender, enviándole su pid, o si se
+  /// queda, enviando un 0
   fn at_destination (&mut self, lake: &RefCell<Lake>) -> io::Result<()>{
     log!("Avisandole al barco si me bajo o no", &LogSeverity::DEBUG);
     let mut writer = lake.borrow_mut().
       get_confirmation_pipe_writer(self.current_port)?;
+    log!("Writer", &LogSeverity::INFO);
+    // Caso especial -2: aviso de prefectura
+    if self.navy {
+      log!("Prefectura me hizo descender", &LogSeverity::DEBUG);
+      self.ask_destination()?;
+      self.status = Status::WaitShip;
+      self.navy = false
+    }
+    // Caso especial -1: aviso de inspector
+    if self.inspection {
+      log!("El inspector consulta si tengo el boleto válido", &LogSeverity::DEBUG);
+      // El boleto es válido aleatoriamente
+      let mut rng = rand::thread_rng();
+      let ticket = rng.gen::<u32>() % 10;
+      // Si está vencido
+      if ticket != 0 {
+        log!("Mi boleto está vencido", &LogSeverity::DEBUG);
+        writeln!(writer, "{}", self.id)?;
+        self.destination = self.current_port;
+        lake.borrow_mut().report_passenger();
+        self.status = Status::WaitShip;
+      } else {
+        log!("Mi boleto es válido", &LogSeverity::DEBUG);
+        writeln!(writer, "0")?;
+        self.status = Status::WaitDestination;
+      }
+      self.inspection = false
+    }
+    // Llega a un puerto
     if self.current_port == self.destination {
       log!("Llegó a destino", &LogSeverity::DEBUG);
       writeln!(writer, "{}", self.id)?;
@@ -102,6 +157,9 @@ impl Passenger {
     Ok(())
   }
 
+  /// El pasajero va a tomar el barco. Para esto abre un FIFO, el de abordo
+  /// y le escribe al barco que quiere subir. Si no hay barco, el pasajero se queda
+  /// bloqueado
   fn take_ship(&mut self, lake: &RefCell<Lake>) -> io::Result<()>{
     let msg = format!("Tomando el barco en el puerto {}, destino {}",
       self.current_port, self.destination);
@@ -121,20 +179,24 @@ impl Passenger {
     Ok(())
   }
 
-  fn read_current_port(&mut self, reader: named_pipe::NamedPipeReader) -> io::Result<(u32)> {
+  /// Función auxiliar de `at_destination`, lee y parsea el número de puerto
+  /// notificado por el barco al llegar a un puerto.
+  fn read_current_port(&mut self, reader: named_pipe::NamedPipeReader) -> io::Result<(i32)> {
     let mut buf_line = String::new();
     let mut buf_reader = BufReader::new(reader);
     log!("Leyendo puerto con buffer", &LogSeverity::DEBUG);
     buf_reader.read_line(&mut buf_line)?;
     buf_line.pop();
     log!(format!("Leido {:?}.", buf_line).as_str(), &LogSeverity::DEBUG);
-    let port_id = buf_line.parse::<u32>().expect("Error al leer el puerto actual");
+    let port_id = buf_line.parse::<i32>().expect("Error al leer el puerto actual");
     let msg = format!("Llega al destino {:?}",
       port_id);
     log!(msg.as_str(), &LogSeverity::INFO);
     Ok(port_id)
   }
 
+  /// El pasajero ya descendió y pasea por el pueblo.
+  /// Comportamiento default: turista que pasea por puertos aleatorios
   fn arrive(&mut self, lake: &RefCell<Lake>) -> io::Result<()> {
     let mut rng = rand::thread_rng();
     let msecs = rng.gen::<u32>() % 1000;

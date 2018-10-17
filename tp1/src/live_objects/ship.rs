@@ -32,10 +32,11 @@ use std::thread::sleep;
 pub struct Ship {
   /// Una cantidad máxima de pasajeros que puede levantar
   current_capacity: u32,
-  destination: u32,
+  destination: i32,
   passenger_vec: Vec<u32>,
   sigalarm_handler: Rc<RefCell<GenericHandler>>,
-  sigusr_handler: Rc<RefCell<GenericHandler>>,
+  sigusr1_handler: Rc<RefCell<GenericHandler>>,
+  sigusr2_handler: Rc<RefCell<GenericHandler>>,
   status: Status
 }
 
@@ -54,10 +55,14 @@ enum Status {
 
 impl LiveObject for Ship {
   fn tick(&mut self, lake: &RefCell<Lake>) -> Result<(), Error> {
-    if self.sigusr_handler.borrow().get_handled() {
-      self.status = Status::PickPassengers;
+    if self.sigusr1_handler.borrow().get_handled() {
+      log!("Comienza una inspección", &LogSeverity::INFO);
       self.inspect_passengers(lake)?;
-      self.sigusr_handler.borrow_mut().reset();
+      self.sigusr1_handler.borrow_mut().reset();
+    }
+    if self.sigusr2_handler.borrow().get_handled() {
+      self.inspect_ship(lake)?;
+      self.sigusr2_handler.borrow_mut().reset();
     }
     match self.status {
       Status::Travel => self.travel(lake)?,
@@ -77,13 +82,16 @@ impl LiveObject for Ship {
 
 
 impl Ship {
-  pub fn new(current_capacity: u32, destination: u32) -> Ship {
+  pub fn new(current_capacity: u32, destination: i32) -> Ship {
     // Acá me recontra abuso del supuesto de que hay un sólo barco por proceso
     let sigalarm_handler = Rc::new(RefCell::new(GenericHandler::new()));
-    let sigusr_handler = Rc::new(RefCell::new(GenericHandler::new()));
+    let sigusr1_handler = Rc::new(RefCell::new(GenericHandler::new()));
+    let sigusr2_handler = Rc::new(RefCell::new(GenericHandler::new()));
     SignalHandlerDispatcher::register(libc::SIGALRM, sigalarm_handler.clone());
-    SignalHandlerDispatcher::register(libc::SIGUSR1, sigusr_handler.clone());
-    Ship {current_capacity, destination, sigalarm_handler, sigusr_handler,
+    SignalHandlerDispatcher::register(libc::SIGUSR1, sigusr1_handler.clone());
+    SignalHandlerDispatcher::register(libc::SIGUSR2, sigusr2_handler.clone());
+    Ship {current_capacity, destination,
+      sigalarm_handler, sigusr1_handler, sigusr2_handler,
       status: Status::Travel, passenger_vec: Vec::new()}
   }
 
@@ -160,6 +168,10 @@ impl Ship {
 
   fn inspect_passengers(&mut self, lake: &RefCell<Lake>) -> io::Result<()> {
     self.notify_passengers(lake, -1)
+  }
+
+  fn inspect_ship(&mut self, lake: &RefCell<Lake>) -> io::Result<()> {
+    self.notify_passengers(lake, -2)
   }
 
   /// Notifica a todos los pasajeros que llegó a un puerto
